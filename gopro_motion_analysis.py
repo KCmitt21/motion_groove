@@ -460,6 +460,17 @@ def source_is_live(source: int | str) -> bool:
     return "://" in source
 
 
+def prepare_stream_url(source: str) -> str:
+    """Add the receive buffer options recommended by the Open GoPro demo."""
+    if source.startswith("udp://") and "overrun_nonfatal=" not in source:
+        separator = "&" if "?" in source else "?"
+        return (
+            f"{source}{separator}"
+            "overrun_nonfatal=1&fifo_size=50000000"
+        )
+    return source
+
+
 class UsbGoProStream:
     """Start and keep an Open GoPro wired webcam stream alive.
 
@@ -470,7 +481,7 @@ class UsbGoProStream:
     def __init__(
         self,
         identifier: str | None = None,
-        protocol: str = "TS",
+        protocol: str = "RTSP",
         startup_timeout_s: float = 30.0,
     ) -> None:
         self.identifier = identifier
@@ -644,8 +655,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--gopro-protocol",
         choices=("TS", "RTSP"),
-        default="TS",
-        help="USB Webcamプロトコル。TSは互換性優先 (default: TS)",
+        default="RTSP",
+        help="USB Webcamプロトコル (default: RTSP)",
     )
     parser.add_argument(
         "--view",
@@ -709,7 +720,17 @@ def run_capture(args: argparse.Namespace, source: int | str) -> dict[str, Any]:
     ensure_model(args.model, not args.no_download)
     live = source_is_live(source)
     if isinstance(source, str) and "://" in source:
-        capture = cv2.VideoCapture(source, cv2.CAP_FFMPEG)
+        capture_source = prepare_stream_url(source)
+        capture = cv2.VideoCapture(
+            capture_source,
+            cv2.CAP_FFMPEG,
+            [
+                cv2.CAP_PROP_OPEN_TIMEOUT_MSEC,
+                15_000,
+                cv2.CAP_PROP_READ_TIMEOUT_MSEC,
+                5_000,
+            ],
+        )
     else:
         capture = cv2.VideoCapture(source)
     capture.set(cv2.CAP_PROP_BUFFERSIZE, 1)

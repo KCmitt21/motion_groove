@@ -58,18 +58,19 @@ python gopro_motion_analysis.py \
   --bpm 120
 ```
 
-`--gopro-usb`を指定した場合、`--source 0`は不要です。既定では互換性の高い
-MPEG-TS/UDPを使います。対応機種ではRTSPも選択できます。
+`--gopro-usb`を指定した場合、`--source 0`は不要です。このHERO13では
+MPEG-TS/UDP映像をMacが受信できず、RTSPで正常動作することを確認したため、
+既定はRTSPです。通常はプロトコル指定なしで実行してください。
 
 ```bash
 python gopro_motion_analysis.py \
   --gopro-usb \
-  --gopro-protocol RTSP \
+  --gopro-protocol TS \
   --view front \
   --bpm 120
 ```
 
-RTSPで失敗した場合は`--gopro-protocol RTSP`を外してください。
+別機種でRTSPが使えない場合だけ`--gopro-protocol TS`を指定します。
 
 解析中の映像も保存する場合は`--record-video`を追加します。このMP4は映像のみで
 音声は入りません。

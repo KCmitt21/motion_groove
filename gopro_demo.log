@@ -1,0 +1,371 @@
+   MainThread:14:08:55.851 mdns_scanner.py                            70 INFO     | Querying mDNS to find _gopro-web._tcp.local....
+   MainThread:14:08:55.909 mdns_scanner.py                            37 DEBUG    | Found MDNS service C3531324967347._gopro-web._tcp.local.
+   MainThread:14:08:55.910 mdns_scanner.py                            76 INFO     | Found MDNS service C3531324967347._gopro-web._tcp.local.
+   MainThread:14:08:55.914 mdns_scanner.py                            79 INFO     | Found service info for C3531324967347._gopro-web._tcp.local.: AsyncServiceInfo(type='_gopro-web._tcp.local.', name='C3531324967347._gopro-web._tcp.local.', addresses=[b'\xac\x17\x933'], port=80, weight=0, priority=0, server='C3531324967347.local.', properties={b'model': b'0x41', b'fw_version': b'H24.01.02.10.00', b'platform_version': b'5919f0c', b'protocol_version': b'1'}, interface_index=None)
+   MainThread:14:08:55.916 gopro_base.py                             381 DEBUG    | Sending:  http://172.23.147.51:8080/gopro/camera/control/wired_usb?p=1
+   MainThread:14:08:55.916 gopro_base.py                             382 INFO     | 
+<<<<<<<<--------------
+    "id" : "Camera Control Wired Usb",
+    "protocol" : "Protocol.HTTP",
+    "endpoint" : "gopro/camera/control/wired_usb",
+    "p" : "Toggle.ENABLE",
+<<<<<<<<--------------
+
+   MainThread:14:08:55.931 connectionpool.py                         241 DEBUG    | Starting new HTTP connection (1): 172.23.147.51:8080
+   MainThread:14:08:55.935 logger.py                                  88 DEBUG    | send: b'GET /gopro/camera/control/wired_usb?p=1 HTTP/1.1\r\nHost: 172.23.147.51:8080\r\nUser-Agent: python-requests/2.34.2\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nConnection: keep-alive\r\n\r\n'
+   MainThread:14:08:55.966 logger.py                                  88 DEBUG    | reply: 'HTTP/1.1 200 OK\r\n'
+   MainThread:14:08:55.966 logger.py                                  88 DEBUG    | header: Content-Type: application/json
+   MainThread:14:08:55.966 logger.py                                  88 DEBUG    | header: Content-Length: 3
+   MainThread:14:08:55.967 connectionpool.py                         544 DEBUG    | http://172.23.147.51:8080 "GET /gopro/camera/control/wired_usb?p=1 HTTP/1.1" 200 3
+   MainThread:14:08:55.967 gopro_base.py                             406 INFO     | 
+-------------->>>>>>>>
+    "id" : "http://172.23.147.51:8080/gopro/camera/control/wired_usb?p=1",
+    "status" : "ErrorCode.SUCCESS",
+    "protocol" : "Protocol.HTTP",
+-------------->>>>>>>>
+
+   MainThread:14:08:55.968 gopro_base.py                             381 DEBUG    | Sending:  http://172.23.147.51:8080/gopro/camera/analytics/set_client_info
+   MainThread:14:08:55.968 gopro_base.py                             382 INFO     | 
+<<<<<<<<--------------
+    "id" : "Camera Analytics Set Client Info",
+    "protocol" : "Protocol.HTTP",
+    "endpoint" : "gopro/camera/analytics/set_client_info",
+<<<<<<<<--------------
+
+   MainThread:14:08:55.971 connectionpool.py                         241 DEBUG    | Starting new HTTP connection (1): 172.23.147.51:8080
+   MainThread:14:08:55.972 logger.py                                  88 DEBUG    | send: b'GET /gopro/camera/analytics/set_client_info HTTP/1.1\r\nHost: 172.23.147.51:8080\r\nUser-Agent: python-requests/2.34.2\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nConnection: keep-alive\r\n\r\n'
+   MainThread:14:08:55.994 logger.py                                  88 DEBUG    | reply: 'HTTP/1.1 200 OK\r\n'
+   MainThread:14:08:55.994 logger.py                                  88 DEBUG    | header: Content-Type: application/json
+   MainThread:14:08:55.994 logger.py                                  88 DEBUG    | header: Content-Length: 3
+   MainThread:14:08:55.994 connectionpool.py                         544 DEBUG    | http://172.23.147.51:8080 "GET /gopro/camera/analytics/set_client_info HTTP/1.1" 200 3
+   MainThread:14:08:55.994 gopro_base.py                             406 INFO     | 
+-------------->>>>>>>>
+    "id" : "http://172.23.147.51:8080/gopro/camera/analytics/set_client_info",
+    "status" : "ErrorCode.SUCCESS",
+    "protocol" : "Protocol.HTTP",
+-------------->>>>>>>>
+
+   MainThread:14:08:55.998 gopro_base.py                             381 DEBUG    | Sending:  http://172.23.147.51:8080/gopro/version
+   MainThread:14:08:55.998 gopro_base.py                             382 INFO     | 
+<<<<<<<<--------------
+    "id" : "Version",
+    "protocol" : "Protocol.HTTP",
+    "endpoint" : "gopro/version",
+<<<<<<<<--------------
+
+   MainThread:14:08:56.011 connectionpool.py                         241 DEBUG    | Starting new HTTP connection (1): 172.23.147.51:8080
+   MainThread:14:08:56.013 logger.py                                  88 DEBUG    | send: b'GET /gopro/version HTTP/1.1\r\nHost: 172.23.147.51:8080\r\nUser-Agent: python-requests/2.34.2\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nConnection: keep-alive\r\n\r\n'
+   MainThread:14:08:56.016 logger.py                                  88 DEBUG    | reply: 'HTTP/1.1 200 OK\r\n'
+   MainThread:14:08:56.017 logger.py                                  88 DEBUG    | header: Content-Type: application/json
+   MainThread:14:08:56.017 logger.py                                  88 DEBUG    | header: Content-Length: 20
+   MainThread:14:08:56.017 connectionpool.py                         544 DEBUG    | http://172.23.147.51:8080 "GET /gopro/version HTTP/1.1" 200 20
+   MainThread:14:08:56.017 gopro_base.py                             406 INFO     | 
+-------------->>>>>>>>
+    "id" : "http://172.23.147.51:8080/gopro/version",
+    "status" : "ErrorCode.SUCCESS",
+    "protocol" : "Protocol.HTTP",
+    "data" : "2.0",
+-------------->>>>>>>>
+
+   MainThread:14:08:56.018 gopro_wired.py                            121 INFO     | Using Open GoPro API version 2.0
+   MainThread:14:08:56.019 gopro_base.py                             381 DEBUG    | Sending:  http://172.23.147.51:8080/gopro/camera/state
+   MainThread:14:08:56.019 gopro_base.py                             382 INFO     | 
+<<<<<<<<--------------
+    "id" : "Camera State",
+    "protocol" : "Protocol.HTTP",
+    "endpoint" : "gopro/camera/state",
+<<<<<<<<--------------
+
+   MainThread:14:08:56.021 connectionpool.py                         241 DEBUG    | Starting new HTTP connection (1): 172.23.147.51:8080
+   MainThread:14:08:56.022 logger.py                                  88 DEBUG    | send: b'GET /gopro/camera/state HTTP/1.1\r\nHost: 172.23.147.51:8080\r\nUser-Agent: python-requests/2.34.2\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nConnection: keep-alive\r\n\r\n'
+   MainThread:14:08:56.053 logger.py                                  88 DEBUG    | reply: 'HTTP/1.1 200 OK\r\n'
+   MainThread:14:08:56.053 logger.py                                  88 DEBUG    | header: Content-Type: application/json
+   MainThread:14:08:56.053 logger.py                                  88 DEBUG    | header: Content-Length: 1632
+   MainThread:14:08:56.053 connectionpool.py                         544 DEBUG    | http://172.23.147.51:8080 "GET /gopro/camera/state HTTP/1.1" 200 1632
+   MainThread:14:08:56.055 gopro_base.py                             406 INFO     | 
+-------------->>>>>>>>
+    "id" : "http://172.23.147.51:8080/gopro/camera/state",
+    "status" : "ErrorCode.SUCCESS",
+    "protocol" : "Protocol.HTTP",
+    "data" : {
+        "StatusId.BATTERY_PRESENT" : "True",
+        "StatusId.INTERNAL_BATTERY_BARS" : "InternalBatteryBars.CHARGING",
+        "StatusId.OVERHEATING" : "False",
+        "StatusId.BUSY" : "False",
+        "StatusId.QUICK_CAPTURE" : "False",
+        "StatusId.ENCODING" : "False",
+        "StatusId.LCD_LOCK" : "False",
+        "StatusId.VIDEO_ENCODING_DURATION" : "0",
+        "StatusId.WIRELESS_CONNECTIONS_ENABLED" : "True",
+        "StatusId.PAIRING_STATE" : "PairingState.NEVER_STARTED",
+        "StatusId.LAST_PAIRING_TYPE" : "LastPairingType.NOT_PAIRING",
+        "StatusId.WIFI_SCAN_STATE" : "WifiScanState.NEVER_STARTED",
+        "StatusId.LAST_WIFI_SCAN_SUCCESS" : "0",
+        "StatusId.WIFI_PROVISIONING_STATE" : "WifiProvisioningState.NEVER_STARTED",
+        "StatusId.REMOTE_CONNECTED" : "False",
+        "StatusId.CONNECTED_WIFI_SSID" : "",
+        "StatusId.ACCESS_POINT_SSID" : "GP24967347",
+        "StatusId.CONNECTED_DEVICES" : "0",
+        "StatusId.PRIMARY_STORAGE" : "PrimaryStorage.OK",
+        "StatusId.REMAINING_PHOTOS" : "7436",
+        "StatusId.REMAINING_VIDEO_TIME" : "0",
+        "StatusId.PHOTOS" : "0",
+        "StatusId.VIDEOS" : "6",
+        "StatusId.OTA" : "Ota.IDLE",
+        "StatusId.PENDING_FW_UPDATE_CANCEL" : "False",
+        "StatusId.LOCATE" : "False",
+        "StatusId.TIMELAPSE_INTERVAL_COUNTDOWN" : "0",
+        "StatusId.SD_CARD_REMAINING" : "126308188",
+        "StatusId.PREVIEW_STREAM_AVAILABLE" : "True",
+        "StatusId.WIFI_BARS" : "4",
+        "StatusId.ACTIVE_HILIGHTS" : "0",
+        "StatusId.TIME_SINCE_LAST_HILIGHT" : "0",
+        "StatusId.MINIMUM_STATUS_POLL_PERIOD" : "500",
+        "StatusId.LIVEVIEW_EXPOSURE_SELECT_MODE" : "LiveviewExposureSelectMode.DISABLED",
+        "StatusId.LIVEVIEW_Y" : "100",
+        "StatusId.LIVEVIEW_X" : "100",
+        "StatusId.GPS_LOCK" : "False",
+        "StatusId.AP_MODE" : "False",
+        "StatusId.INTERNAL_BATTERY_PERCENTAGE" : "79",
+        "StatusId.MICROPHONE_ACCESSORY" : "MicrophoneAccessory.ACCESSORY_NOT_CONNECTED",
+        "StatusId.ZOOM_LEVEL" : "0",
+        "StatusId.WIRELESS_BAND" : "WirelessBand.NUM_5_GHZ",
+        "StatusId.ZOOM_AVAILABLE" : "True",
+        "StatusId.NUM_5GHZ_AVAILABLE" : "False",
+        "StatusId.READY" : "True",
+        "StatusId.OTA_CHARGED" : "True",
+        "StatusId.COLD" : "False",
+        "StatusId.ROTATION" : "Rotation.NUM_0_DEGREES_UPRIGHT_",
+        "StatusId.ZOOM_WHILE_ENCODING" : "False",
+        "StatusId.FLATMODE" : "23",
+        "StatusId.VIDEO_PRESET" : "655360",
+        "StatusId.PHOTO_PRESET" : "786432",
+        "StatusId.TIMELAPSE_PRESET" : "851968",
+        "StatusId.PRESET_GROUP" : "1006",
+        "StatusId.PRESET" : "0",
+        "StatusId.PRESET_MODIFIED" : "17432576",
+        "StatusId.CAPTURE_DELAY_ACTIVE" : "False",
+        "StatusId.MEDIA_MOD_STATE" : "MediaModState.MICROPHONE_REMOVED",
+        "StatusId.TIME_WARP_SPEED" : "TimeWarpSpeed.NUM_15X",
+        "StatusId.HINDSIGHT" : "False",
+        "StatusId.SCHEDULED_CAPTURE_PRESET_ID" : "3409224",
+        "StatusId.SCHEDULED_CAPTURE" : "False",
+        "StatusId.DISPLAY_MOD_STATUS" : "DisplayModStatus.NUM_000_DISPLAY_MOD_0_HDMI_0_DISPLAY_MOD_CONNECTED_FALSE",
+        "StatusId.SD_CARD_WRITE_SPEED_ERROR" : "False",
+        "StatusId.SD_CARD_ERRORS" : "0",
+        "StatusId.TURBO_TRANSFER" : "False",
+        "StatusId.CAMERA_CONTROL_ID" : "CameraControlId.CAMERA_IDLE_NO_ONE_IS_ATTEMPTING_TO_CHANGE_CAMERA_SETTINGS",
+        "StatusId.USB_CONNECTED" : "False",
+        "StatusId.USB_CONTROLLED" : "UsbControlled.ENABLED",
+        "StatusId.SD_CARD_CAPACITY" : "128144375",
+        "StatusId.PHOTO_INTERVAL_CAPTURE_COUNT" : "0",
+        "SettingId.VIDEO_RESOLUTION" : "VideoResolution.NUM_4K",
+        "SettingId.FRAMES_PER_SECOND" : "FramesPerSecond.NUM_240_0",
+        "SettingId.VIDEO_TIMELAPSE_RATE" : "VideoTimelapseRate.NUM_0_5_SECONDS",
+        "SettingId.PHOTO_TIMELAPSE_RATE" : "PhotoTimelapseRate.NUM_0_5_SECONDS",
+        "SettingId.NIGHTLAPSE_RATE" : "NightlapseRate.NUM_10_SECONDS",
+        "SettingId.WEBCAM_DIGITAL_LENSES" : "WebcamDigitalLenses.WIDE",
+        "SettingId.AUTO_POWER_DOWN" : "AutoPowerDown.NUM_15_MIN",
+        "SettingId.GPS" : "Gps.ON",
+        "SettingId.LCD_BRIGHTNESS" : "50",
+        "SettingId.LED" : "Led.ALL_ON",
+        "SettingId.VIDEO_ASPECT_RATIO" : "VideoAspectRatio.NUM_4_3",
+        "SettingId.VIDEO_LENS" : "VideoLens.WIDE",
+        "SettingId.PHOTO_LENS" : "PhotoLens.WIDE_12_MP",
+        "SettingId.TIME_LAPSE_DIGITAL_LENSES" : "TimeLapseDigitalLenses.WIDE_27_MP",
+        "SettingId.PHOTO_OUTPUT" : "PhotoOutput.STANDARD",
+        "SettingId.MEDIA_FORMAT" : "MediaFormat.TIME_LAPSE_VIDEO",
+        "SettingId.ANTI_FLICKER" : "Anti_Flicker.NTSC",
+        "SettingId.HYPERSMOOTH" : "Hypersmooth.OFF",
+        "SettingId.VIDEO_DURATION" : "VideoDuration.NO_LIMIT",
+        "SettingId.MULTI_SHOT_DURATION" : "MultiShotDuration.NO_LIMIT",
+        "SettingId.HINDSIGHT" : "Hindsight.OFF",
+        "SettingId.SCHEDULED_CAPTURE" : "{
+        "hour": 0,
+        "minute": 0,
+        "is_enabled": false,
+        "is_24_hour": false
+}",
+        "SettingId.PHOTO_SINGLE_INTERVAL" : "PhotoSingleInterval.OFF",
+        "SettingId.PHOTO_INTERVAL_DURATION" : "PhotoIntervalDuration.OFF",
+        "SettingId.CONTROL_MODE" : "ControlMode.EASY",
+        "SettingId.EASY_MODE_SPEED" : "EasyModeSpeed.NUM_1X_SPEED_LOW_LIGHT_V2_",
+        "SettingId.WIRELESS_BAND" : "WirelessBand.NUM_5GHZ",
+        "SettingId.STAR_TRAILS_LENGTH" : "StarTrailsLength.MAX",
+        "SettingId.SYSTEM_VIDEO_MODE" : "SystemVideoMode.HIGHEST_QUALITY",
+        "SettingId.VIDEO_BIT_RATE" : "VideoBitRate.STANDARD",
+        "SettingId.BIT_DEPTH" : "BitDepth.NUM_8_BIT",
+        "SettingId.PROFILES" : "Profiles.STANDARD",
+        "SettingId.VIDEO_EASY_MODE" : "VideoEasyMode.STANDARD_VIDEO",
+        "SettingId.LAPSE_MODE" : "LapseMode.TIMEWARP",
+        "SettingId.MAX_LENS_MOD" : "MaxLensMod.AUTO_DETECT",
+        "SettingId.EASY_NIGHT_PHOTO" : "EasyNightPhoto.SUPER_PHOTO",
+        "SettingId.MULTI_SHOT_ASPECT_RATIO" : "MultiShotAspectRatio.NUM_4_3",
+        "SettingId.FRAMING" : "Framing.TRADITIONAL_4_3_V2",
+        "SettingId.BEEP_VOLUME" : "BeepVolume.LOW",
+        "SettingId.SETUP_SCREEN_SAVER" : "SetupScreenSaver.NUM_5_MIN",
+        "SettingId.SETUP_LANGUAGE" : "SetupLanguage.JAPANESE",
+        "SettingId.PHOTO_MODE" : "PhotoMode.SUPERPHOTO",
+        "SettingId.VIDEO_FRAMING" : "VideoFraming.NUM_4_3",
+        "SettingId.MULTI_SHOT_FRAMING" : "MultiShotFraming.NUM_4_3",
+        "SettingId.FRAME_RATE" : "FrameRate.NUM_240_0",
+    },
+-------------->>>>>>>>
+
+   MainThread:14:08:56.060 stream_feature.py                         115 INFO     | Starting Webcam stream
+   MainThread:14:08:56.060 gopro_base.py                             381 DEBUG    | Sending:  http://172.23.147.51:8080/gopro/camera/shutter/stop
+   MainThread:14:08:56.060 gopro_base.py                             382 INFO     | 
+<<<<<<<<--------------
+    "id" : "Camera Shutter",
+    "protocol" : "Protocol.HTTP",
+    "endpoint" : "gopro/camera/shutter",
+    "mode" : "stop",
+<<<<<<<<--------------
+
+   MainThread:14:08:56.061 connectionpool.py                         241 DEBUG    | Starting new HTTP connection (1): 172.23.147.51:8080
+   MainThread:14:08:56.062 logger.py                                  88 DEBUG    | send: b'GET /gopro/camera/shutter/stop HTTP/1.1\r\nHost: 172.23.147.51:8080\r\nUser-Agent: python-requests/2.34.2\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nConnection: keep-alive\r\n\r\n'
+   MainThread:14:08:56.068 logger.py                                  88 DEBUG    | reply: 'HTTP/1.1 200 OK\r\n'
+   MainThread:14:08:56.068 logger.py                                  88 DEBUG    | header: Content-Type: application/json
+   MainThread:14:08:56.068 logger.py                                  88 DEBUG    | header: Content-Length: 3
+   MainThread:14:08:56.068 connectionpool.py                         544 DEBUG    | http://172.23.147.51:8080 "GET /gopro/camera/shutter/stop HTTP/1.1" 200 3
+   MainThread:14:08:56.068 gopro_base.py                             406 INFO     | 
+-------------->>>>>>>>
+    "id" : "http://172.23.147.51:8080/gopro/camera/shutter/stop",
+    "status" : "ErrorCode.SUCCESS",
+    "protocol" : "Protocol.HTTP",
+-------------->>>>>>>>
+
+   MainThread:14:08:56.069 gopro_base.py                             381 DEBUG    | Sending:  http://172.23.147.51:8080/gopro/webcam/status
+   MainThread:14:08:56.069 gopro_base.py                             382 INFO     | 
+<<<<<<<<--------------
+    "id" : "Webcam Status",
+    "protocol" : "Protocol.HTTP",
+    "endpoint" : "gopro/webcam/status",
+<<<<<<<<--------------
+
+   MainThread:14:08:56.069 connectionpool.py                         241 DEBUG    | Starting new HTTP connection (1): 172.23.147.51:8080
+   MainThread:14:08:56.070 logger.py                                  88 DEBUG    | send: b'GET /gopro/webcam/status HTTP/1.1\r\nHost: 172.23.147.51:8080\r\nUser-Agent: python-requests/2.34.2\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nConnection: keep-alive\r\n\r\n'
+   MainThread:14:08:56.076 logger.py                                  88 DEBUG    | reply: 'HTTP/1.1 200 OK\r\n'
+   MainThread:14:08:56.077 logger.py                                  88 DEBUG    | header: Content-Type: application/json
+   MainThread:14:08:56.077 logger.py                                  88 DEBUG    | header: Content-Length: 31
+   MainThread:14:08:56.077 connectionpool.py                         544 DEBUG    | http://172.23.147.51:8080 "GET /gopro/webcam/status HTTP/1.1" 200 31
+   MainThread:14:08:56.077 gopro_base.py                             406 INFO     | 
+-------------->>>>>>>>
+    "id" : "http://172.23.147.51:8080/gopro/webcam/status",
+    "status" : "ErrorCode.SUCCESS",
+    "protocol" : "Protocol.HTTP",
+    "data" : {
+        "status" : "WebcamStatus.IDLE",
+        "error" : "WebcamError.SUCCESS",
+    },
+-------------->>>>>>>>
+
+   MainThread:14:08:56.077 webcam_stream.py                           90 INFO     | Starting webcam...
+   MainThread:14:08:56.077 gopro_base.py                             381 DEBUG    | Sending:  http://172.23.147.51:8080/gopro/webcam/start?protocol=TS
+   MainThread:14:08:56.077 gopro_base.py                             382 INFO     | 
+<<<<<<<<--------------
+    "id" : "Webcam Start",
+    "protocol" : "Protocol.HTTP",
+    "endpoint" : "gopro/webcam/start",
+    "res" : "None",
+    "fov" : "None",
+    "port" : "None",
+    "_protocol" : "WebcamProtocol.TS",
+<<<<<<<<--------------
+
+   MainThread:14:08:56.077 connectionpool.py                         241 DEBUG    | Starting new HTTP connection (1): 172.23.147.51:8080
+   MainThread:14:08:56.078 logger.py                                  88 DEBUG    | send: b'GET /gopro/webcam/start?protocol=TS HTTP/1.1\r\nHost: 172.23.147.51:8080\r\nUser-Agent: python-requests/2.34.2\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nConnection: keep-alive\r\n\r\n'
+   MainThread:14:08:57.549 logger.py                                  88 DEBUG    | reply: 'HTTP/1.1 200 OK\r\n'
+   MainThread:14:08:57.550 logger.py                                  88 DEBUG    | header: Content-Type: application/json
+   MainThread:14:08:57.550 logger.py                                  88 DEBUG    | header: Content-Length: 31
+   MainThread:14:08:57.550 connectionpool.py                         544 DEBUG    | http://172.23.147.51:8080 "GET /gopro/webcam/start?protocol=TS HTTP/1.1" 200 31
+   MainThread:14:08:57.551 gopro_base.py                             406 INFO     | 
+-------------->>>>>>>>
+    "id" : "http://172.23.147.51:8080/gopro/webcam/start?protocol=TS",
+    "status" : "ErrorCode.SUCCESS",
+    "protocol" : "Protocol.HTTP",
+    "data" : {
+        "status" : "WebcamStatus.HIGH_POWER_PREVIEW",
+        "error" : "WebcamError.SUCCESS",
+    },
+-------------->>>>>>>>
+
+   MainThread:14:08:57.553 gopro_base.py                             381 DEBUG    | Sending:  http://172.23.147.51:8080/gopro/webcam/status
+   MainThread:14:08:57.553 gopro_base.py                             382 INFO     | 
+<<<<<<<<--------------
+    "id" : "Webcam Status",
+    "protocol" : "Protocol.HTTP",
+    "endpoint" : "gopro/webcam/status",
+<<<<<<<<--------------
+
+   MainThread:14:08:57.555 connectionpool.py                         241 DEBUG    | Starting new HTTP connection (1): 172.23.147.51:8080
+   MainThread:14:08:57.557 logger.py                                  88 DEBUG    | send: b'GET /gopro/webcam/status HTTP/1.1\r\nHost: 172.23.147.51:8080\r\nUser-Agent: python-requests/2.34.2\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nConnection: keep-alive\r\n\r\n'
+   MainThread:14:08:57.564 logger.py                                  88 DEBUG    | reply: 'HTTP/1.1 200 OK\r\n'
+   MainThread:14:08:57.566 logger.py                                  88 DEBUG    | header: Content-Type: application/json
+   MainThread:14:08:57.566 logger.py                                  88 DEBUG    | header: Content-Length: 31
+   MainThread:14:08:57.566 connectionpool.py                         544 DEBUG    | http://172.23.147.51:8080 "GET /gopro/webcam/status HTTP/1.1" 200 31
+   MainThread:14:08:57.568 gopro_base.py                             406 INFO     | 
+-------------->>>>>>>>
+    "id" : "http://172.23.147.51:8080/gopro/webcam/status",
+    "status" : "ErrorCode.SUCCESS",
+    "protocol" : "Protocol.HTTP",
+    "data" : {
+        "status" : "WebcamStatus.HIGH_POWER_PREVIEW",
+        "error" : "WebcamError.SUCCESS",
+    },
+-------------->>>>>>>>
+
+   MainThread:14:08:57.568 webcam_stream.py                           53 DEBUG    | Webcam stream controller received status: WebcamStatus.HIGH_POWER_PREVIEW
+   MainThread:14:08:57.568 stream_feature.py                         118 INFO     | Stream started successfully.
+   MainThread:14:08:58.570 gopro_base.py                             381 DEBUG    | Sending:  http://172.23.147.51:8080/gopro/webcam/status
+   MainThread:14:08:58.570 gopro_base.py                             382 INFO     | 
+<<<<<<<<--------------
+    "id" : "Webcam Status",
+    "protocol" : "Protocol.HTTP",
+    "endpoint" : "gopro/webcam/status",
+<<<<<<<<--------------
+
+   MainThread:14:08:58.573 connectionpool.py                         241 DEBUG    | Starting new HTTP connection (1): 172.23.147.51:8080
+   MainThread:14:08:58.575 logger.py                                  88 DEBUG    | send: b'GET /gopro/webcam/status HTTP/1.1\r\nHost: 172.23.147.51:8080\r\nUser-Agent: python-requests/2.34.2\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nConnection: keep-alive\r\n\r\n'
+   MainThread:14:08:58.583 logger.py                                  88 DEBUG    | reply: 'HTTP/1.1 200 OK\r\n'
+   MainThread:14:08:58.584 logger.py                                  88 DEBUG    | header: Content-Type: application/json
+   MainThread:14:08:58.584 logger.py                                  88 DEBUG    | header: Content-Length: 31
+   MainThread:14:08:58.584 connectionpool.py                         544 DEBUG    | http://172.23.147.51:8080 "GET /gopro/webcam/status HTTP/1.1" 200 31
+   MainThread:14:08:58.585 gopro_base.py                             406 INFO     | 
+-------------->>>>>>>>
+    "id" : "http://172.23.147.51:8080/gopro/webcam/status",
+    "status" : "ErrorCode.SUCCESS",
+    "protocol" : "Protocol.HTTP",
+    "data" : {
+        "status" : "WebcamStatus.HIGH_POWER_PREVIEW",
+        "error" : "WebcamError.SUCCESS",
+    },
+-------------->>>>>>>>
+
+   MainThread:14:08:58.586 webcam_stream.py                           53 DEBUG    | Webcam stream controller received status: WebcamStatus.HIGH_POWER_PREVIEW
+   MainThread:14:08:59.587 gopro_base.py                             381 DEBUG    | Sending:  http://172.23.147.51:8080/gopro/webcam/status
+   MainThread:14:08:59.587 gopro_base.py                             382 INFO     | 
+<<<<<<<<--------------
+    "id" : "Webcam Status",
+    "protocol" : "Protocol.HTTP",
+    "endpoint" : "gopro/webcam/status",
+<<<<<<<<--------------
+
+   MainThread:14:08:59.590 connectionpool.py                         241 DEBUG    | Starting new HTTP connection (1): 172.23.147.51:8080
+   MainThread:14:08:59.592 logger.py                                  88 DEBUG    | send: b'GET /gopro/webcam/status HTTP/1.1\r\nHost: 172.23.147.51:8080\r\nUser-Agent: python-requests/2.34.2\r\nAccept-Encoding: gzip, deflate\r\nAccept: */*\r\nConnection: keep-alive\r\n\r\n'
+   MainThread:14:08:59.600 logger.py                                  88 DEBUG    | reply: 'HTTP/1.1 200 OK\r\n'
+   MainThread:14:08:59.600 logger.py                                  88 DEBUG    | header: Content-Type: application/json
+   MainThread:14:08:59.601 logger.py                                  88 DEBUG    | header: Content-Length: 31
+   MainThread:14:08:59.601 connectionpool.py                         544 DEBUG    | http://172.23.147.51:8080 "GET /gopro/webcam/status HTTP/1.1" 200 31
+   MainThread:14:08:59.602 gopro_base.py                             406 INFO     | 
+-------------->>>>>>>>
+    "id" : "http://172.23.147.51:8080/gopro/webcam/status",
+    "status" : "ErrorCode.SUCCESS",
+    "protocol" : "Protocol.HTTP",
+    "data" : {
+        "status" : "WebcamStatus.HIGH_POWER_PREVIEW",
+        "error" : "WebcamError.SUCCESS",
+    },
+-------------->>>>>>>>
+
+   MainThread:14:08:59.602 webcam_stream.py                           53 DEBUG    | Webcam stream controller received status: WebcamStatus.HIGH_POWER_PREVIEW

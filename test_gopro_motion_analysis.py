@@ -6,6 +6,7 @@ from gopro_motion_analysis import (
     beat_synchronisation,
     beats_from_bpm,
     build_parser,
+    prepare_stream_url,
     robust_standardize,
     signed_forward_lean_deg,
     validate_args,
@@ -44,11 +45,17 @@ class MotionMathTests(unittest.TestCase):
         self.assertEqual(energy[0], 0.0)
         self.assertGreater(energy[-1], 0.0)
 
-    def test_usb_cli_defaults_to_ts(self):
+    def test_usb_cli_defaults_to_rtsp(self):
         args = build_parser().parse_args(["--gopro-usb", "--bpm", "120"])
         validate_args(args)
         self.assertTrue(args.gopro_usb)
-        self.assertEqual(args.gopro_protocol, "TS")
+        self.assertEqual(args.gopro_protocol, "RTSP")
+
+    def test_udp_source_gets_gopro_receive_buffer_options(self):
+        self.assertEqual(
+            prepare_stream_url("udp://0.0.0.0:8554"),
+            "udp://0.0.0.0:8554?overrun_nonfatal=1&fifo_size=50000000",
+        )
 
 
 if __name__ == "__main__":
