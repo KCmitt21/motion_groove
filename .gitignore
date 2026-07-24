@@ -1,0 +1,8 @@
+__pycache__/
+*.py[cod]
+.venv*/
+models/
+recordings/
+results/
+motion_metrics.csv
+motion_summary.json

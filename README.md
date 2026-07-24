@@ -11,12 +11,17 @@
 
 ## 1. インストール
 
-MediaPipeを利用できるPython 3.11環境を推奨します。現在このMacの
-`python3` は3.14なので、別の仮想環境を作成してください。
+MediaPipeとOpen GoPro SDKの両方を利用できるPython 3.11環境を使います。
+現在の`.venv-motion`はPython 3.14なので、その環境は使わず、新しい環境を
+作成してください。
+
+Open GoProはPyPIで取得できる`0.22.0`に固定しています。公式ドキュメントには
+`0.23.0`も掲載されていますが、PyPIにはまだ公開されていません。
 
 ```bash
-python3.11 -m venv .venv-motion
-source .venv-motion/bin/activate
+brew install python@3.11
+python3.11 -m venv .venv-motion311
+source .venv-motion311/bin/activate
 python -m pip install -r requirements-motion.txt
 ```
 
@@ -30,26 +35,90 @@ GoProを三脚に固定し、可能ならレンズを `Linear`、解像度を108
 レートを30または60 fpsにします。HyperSmoothやカメラの移動は、身体の動きと
 映像の動きを混同するため避けてください。頭から腰まで常に画角に入れます。
 
-### USBウェブカメラ（カメラ番号0）
+### USB直結でリアルタイム解析（推奨）
 
-GoProをWebcamモードにしてから実行します。別のカメラとして認識された場合は
-`--source 1`、`--source 2` のように番号を変更します。
+この方法では、プログラムがOpen GoPro公式SDKを使ってGoProを検出し、
+Webcamストリームの開始と終了を自動で行います。USBストリーミングは基本的に
+HERO11以降が対象です。
+
+1. GoProのファームウェアを最新版にする
+2. データ通信対応のUSB-CケーブルでGoProとMacを直接つなぐ
+3. GoProの電源を手動で入れる
+4. macOSにネットワーク接続の確認が出たら許可する
+5. GoPro Webcamアプリ、VLC、Zoomなど、GoProを使う他のアプリを終了する
+6. 次のコマンドを実行する
+
+```bash
+cd /Users/keishi-mac/code/motion_groove
+source .venv-motion311/bin/activate
+python gopro_motion_analysis.py \
+  --gopro-usb \
+  --view front \
+  --duration 60 \
+  --bpm 120
+```
+
+`--gopro-usb`を指定した場合、`--source 0`は不要です。既定では互換性の高い
+MPEG-TS/UDPを使います。対応機種ではRTSPも選択できます。
+
+```bash
+python gopro_motion_analysis.py \
+  --gopro-usb \
+  --gopro-protocol RTSP \
+  --view front \
+  --bpm 120
+```
+
+RTSPで失敗した場合は`--gopro-protocol RTSP`を外してください。
+
+解析中の映像も保存する場合は`--record-video`を追加します。このMP4は映像のみで
+音声は入りません。
+
+```bash
+python gopro_motion_analysis.py \
+  --gopro-usb \
+  --view front \
+  --duration 60 \
+  --bpm 120 \
+  --record-video recordings/session01.mp4 \
+  --output results/session01.csv \
+  --summary results/session01.json
+```
+
+プレビュー画面で`Q`または`Esc`を押すと終了します。終了時にGoProのWebcam
+ストリームを停止し、CSVとJSONを書き出します。
+
+#### USB接続が動かないとき
+
+- 充電専用ではなく、データ通信対応のUSB-Cケーブルを使う
+- USBハブを避け、Macへ直接接続する
+- GoProを一度再起動する
+- GoProの「接続をリセット」後、USBをつなぎ直す
+- 他のカメラ／配信アプリを終了する
+- HERO13の一部ファームウェアにはWebcam APIの既知問題があるため、
+  GoProのファームウェアを更新する
+- 複数台接続時だけ`--gopro-id`で対象を指定する
+
+接続だけを公式デモで確認する場合:
+
+```bash
+gopro-webcam
+```
+
+このデモが映るのに解析プログラムが映らない場合は、両方を同時起動せず、
+`gopro-webcam`を終了してから解析プログラムを起動してください。
+
+### 仮想Webcamまたは既存ストリームを使う場合
+
+GoPro Webcam UtilityなどによってGoProがmacOSのカメラとして既に認識されて
+いる場合は、従来どおりカメラ番号を指定できます。
 
 ```bash
 python gopro_motion_analysis.py --source 0 --view front --bpm 120
 ```
 
-60秒だけ収集する例:
-
-```bash
-python gopro_motion_analysis.py --source 0 --duration 60 --bpm 120
-```
-
-Open GoProで開始したRTSP/UDPストリームもURLをそのまま指定できます。
-
-```bash
-python gopro_motion_analysis.py --source "rtsp://GoProのURL"
-```
+別のカメラとして認識された場合は`--source 1`、`--source 2`を試します。
+すでに開始済みのRTSP/UDP URLも`--source`へ指定できます。
 
 ### 保存済みGoPro MP4
 
@@ -72,9 +141,10 @@ python gopro_motion_analysis.py \
 - `--bpm 120 --beat-offset 0.25`: 既知BPMと第1拍の時刻（ライブ向け）
 - `--beat-times beats.csv`: 1列目に拍時刻（秒）を並べたCSV（最も正確）
 
-GoProのウェブカメラ映像はOpenCVから音声を取得できないため、ライブ解析では
-既知BPMか、DAW等から書き出した拍時刻CSVを使います。音楽再生開始と映像開始の
-ずれを`--beat-offset`で補正してください。
+GoProのUSB Webcam映像はこのプログラムから音声を取得しないため、ライブ解析では
+既知BPMか、DAW等から書き出した拍時刻CSVを使います。`--bpm`方式では、解析開始後
+の最初の拍の時刻を`--beat-offset`で補正します。たとえば映像開始から0.4秒後が
+最初の拍なら`--beat-offset 0.4`とします。
 
 ## 4. カメラ方向と値の解釈
 

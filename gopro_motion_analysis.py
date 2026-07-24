@@ -12,11 +12,13 @@ Press Q or Esc to stop a live capture.
 from __future__ import annotations
 
 import argparse
+import asyncio
 import csv
 import json
 import math
 import os
 import sys
+import threading
 import time
 import urllib.request
 from dataclasses import dataclass
@@ -458,6 +460,107 @@ def source_is_live(source: int | str) -> bool:
     return "://" in source
 
 
+class UsbGoProStream:
+    """Start and keep an Open GoPro wired webcam stream alive.
+
+    The SDK is asynchronous, while OpenCV/MediaPipe processing is synchronous.
+    A small background thread owns the SDK event loop for the whole capture.
+    """
+
+    def __init__(
+        self,
+        identifier: str | None = None,
+        protocol: str = "TS",
+        startup_timeout_s: float = 30.0,
+    ) -> None:
+        self.identifier = identifier
+        self.protocol = protocol.upper()
+        self.startup_timeout_s = startup_timeout_s
+        self.source: str | None = None
+        self._ready = threading.Event()
+        self._stop = threading.Event()
+        self._stopped = threading.Event()
+        self._error: BaseException | None = None
+        self._thread: threading.Thread | None = None
+
+    async def _serve(self) -> None:
+        try:
+            try:
+                from open_gopro import WiredGoPro
+                from open_gopro.models.streaming import (
+                    StreamType,
+                    WebcamProtocol,
+                    WebcamStreamOptions,
+                )
+                from returns.pipeline import is_successful
+            except ImportError as exc:
+                raise RuntimeError(
+                    "USB自動接続にはopen-goproが必要です。"
+                    "`python -m pip install -r requirements-motion.txt`を実行してください。"
+                ) from exc
+
+            protocol = (
+                WebcamProtocol.RTSP
+                if self.protocol == "RTSP"
+                else WebcamProtocol.TS
+            )
+            async with WiredGoPro(self.identifier) as gopro:
+                result = await gopro.streaming.start_stream(
+                    stream_type=StreamType.WEBCAM,
+                    options=WebcamStreamOptions(protocol=protocol),
+                )
+                if not is_successful(result):
+                    raise RuntimeError(
+                        f"GoPro Webcamストリームを開始できません: {result.failure()}"
+                    )
+                if not gopro.streaming.url:
+                    raise RuntimeError("GoProからストリームURLが返されませんでした")
+                self.source = str(gopro.streaming.url)
+                self._ready.set()
+                while not self._stop.is_set():
+                    await asyncio.sleep(0.1)
+                await gopro.streaming.stop_active_stream()
+        except BaseException as exc:
+            self._error = exc
+            self._ready.set()
+        finally:
+            self._stopped.set()
+
+    def _thread_main(self) -> None:
+        asyncio.run(self._serve())
+
+    def __enter__(self) -> str:
+        self._thread = threading.Thread(
+            target=self._thread_main,
+            name="open-gopro-usb",
+            daemon=True,
+        )
+        self._thread.start()
+        if not self._ready.wait(self.startup_timeout_s):
+            self._stop.set()
+            raise RuntimeError(
+                "GoProのUSB検出がタイムアウトしました。電源、USBケーブル、"
+                "対応機種、macOSのネットワーク許可を確認してください。"
+            )
+        if self._error is not None:
+            raise RuntimeError(str(self._error)) from self._error
+        if self.source is None:
+            raise RuntimeError("GoPro USBストリームを取得できませんでした")
+        print(
+            f"GoPro USB Webcam開始 ({self.protocol}): {self.source}",
+            file=sys.stderr,
+        )
+        return self.source
+
+    def __exit__(self, exc_type: Any, exc: Any, traceback: Any) -> None:
+        self._stop.set()
+        self._stopped.wait(15.0)
+        if self._thread is not None:
+            self._thread.join(timeout=1.0)
+        if exc_type is None and self._error is not None:
+            raise RuntimeError(str(self._error)) from self._error
+
+
 def draw_overlay(
     cv2: Any,
     frame: np.ndarray,
@@ -530,6 +633,21 @@ def build_parser() -> argparse.ArgumentParser:
         help="OpenCV入力: カメラ番号、MP4パス、RTSP/UDP URL (default: 0)",
     )
     parser.add_argument(
+        "--gopro-usb",
+        action="store_true",
+        help="Open GoPro SDKでUSB接続したGoPro Webcamを自動開始",
+    )
+    parser.add_argument(
+        "--gopro-id",
+        help="複数台接続時のGoPro識別子（通常は省略）",
+    )
+    parser.add_argument(
+        "--gopro-protocol",
+        choices=("TS", "RTSP"),
+        default="TS",
+        help="USB Webcamプロトコル。TSは互換性優先 (default: TS)",
+    )
+    parser.add_argument(
         "--view",
         choices=("front", "side-right", "side-left"),
         default="front",
@@ -537,6 +655,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--output", type=Path, default=Path("motion_metrics.csv"))
     parser.add_argument("--summary", type=Path, default=Path("motion_summary.json"))
+    parser.add_argument(
+        "--record-video",
+        type=Path,
+        help="解析と同時に受信映像をMP4へ保存（音声なし）",
+    )
     parser.add_argument(
         "--model",
         type=Path,
@@ -569,9 +692,11 @@ def validate_args(args: argparse.Namespace) -> None:
         raise ValueError("--duration は0より大きくしてください")
     if not 0 <= args.visibility_threshold <= 1:
         raise ValueError("--visibility-threshold は0〜1で指定してください")
+    if args.gopro_id and not args.gopro_usb:
+        raise ValueError("--gopro-id は --gopro-usb と一緒に指定してください")
 
 
-def run(args: argparse.Namespace) -> dict[str, Any]:
+def run_capture(args: argparse.Namespace, source: int | str) -> dict[str, Any]:
     try:
         import cv2
         import mediapipe as mp
@@ -582,14 +707,17 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         ) from exc
 
     ensure_model(args.model, not args.no_download)
-    source = parse_source(args.source)
     live = source_is_live(source)
-    capture = cv2.VideoCapture(source)
+    if isinstance(source, str) and "://" in source:
+        capture = cv2.VideoCapture(source, cv2.CAP_FFMPEG)
+    else:
+        capture = cv2.VideoCapture(source)
+    capture.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     capture.set(cv2.CAP_PROP_FRAME_WIDTH, args.width)
     capture.set(cv2.CAP_PROP_FRAME_HEIGHT, args.height)
     capture.set(cv2.CAP_PROP_FPS, args.fps)
     if not capture.isOpened():
-        raise RuntimeError(f"映像入力を開けません: {args.source}")
+        raise RuntimeError(f"映像入力を開けません: {source}")
 
     actual_fps = float(capture.get(cv2.CAP_PROP_FPS))
     if not math.isfinite(actual_fps) or actual_fps <= 1:
@@ -630,6 +758,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     )
 
     rows: list[dict[str, Any]] = []
+    video_writer = None
     frame_index = 0
     last_timestamp_ms = -1
     started = time.monotonic()
@@ -639,6 +768,21 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 ok, frame = capture.read()
                 if not ok:
                     break
+                if args.record_video is not None:
+                    if video_writer is None:
+                        args.record_video.parent.mkdir(parents=True, exist_ok=True)
+                        frame_height, frame_width = frame.shape[:2]
+                        video_writer = cv2.VideoWriter(
+                            str(args.record_video),
+                            cv2.VideoWriter_fourcc(*"mp4v"),
+                            actual_fps,
+                            (frame_width, frame_height),
+                        )
+                        if not video_writer.isOpened():
+                            raise RuntimeError(
+                                f"録画ファイルを作成できません: {args.record_video}"
+                            )
+                    video_writer.write(frame)
                 if live:
                     time_s = time.monotonic() - started
                 else:
@@ -689,6 +833,8 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
                 frame_index += 1
     finally:
         capture.release()
+        if video_writer is not None:
+            video_writer.release()
         if not args.no_preview:
             cv2.destroyAllWindows()
 
@@ -696,9 +842,12 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
     summary = summarise(rows, sync, detected_tempo)
     summary.update(
         {
-            "source": args.source,
+            "source": str(source),
             "camera_view": args.view,
             "forward_lean_threshold_deg": args.forward_threshold,
+            "recorded_video": (
+                str(args.record_video) if args.record_video is not None else None
+            ),
             "beat_method": (
                 "audio"
                 if args.music
@@ -716,6 +865,28 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         json.dumps(summary, ensure_ascii=False, indent=2), encoding="utf-8"
     )
     return summary
+
+
+def run(args: argparse.Namespace) -> dict[str, Any]:
+    if args.gopro_usb:
+        # Fail before starting the camera, and download the model before the
+        # stream starts so the first USB session is not left waiting.
+        try:
+            import cv2  # noqa: F401
+            import mediapipe  # noqa: F401
+        except ImportError as exc:
+            raise RuntimeError(
+                "OpenCV/MediaPipeがありません。Python 3.11環境で "
+                "`python -m pip install -r requirements-motion.txt` "
+                "を実行してください。"
+            ) from exc
+        ensure_model(args.model, not args.no_download)
+        with UsbGoProStream(
+            identifier=args.gopro_id,
+            protocol=args.gopro_protocol,
+        ) as stream_source:
+            return run_capture(args, stream_source)
+    return run_capture(args, parse_source(args.source))
 
 
 def main() -> int:

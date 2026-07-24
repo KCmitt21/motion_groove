@@ -2,11 +2,13 @@ import unittest
 
 import numpy as np
 
-from motion_groove.gopro_motion_analysis import (
+from gopro_motion_analysis import (
     beat_synchronisation,
     beats_from_bpm,
+    build_parser,
     robust_standardize,
     signed_forward_lean_deg,
+    validate_args,
 )
 
 
@@ -41,6 +43,12 @@ class MotionMathTests(unittest.TestCase):
         energy = robust_standardize(np.array([0.0, 1.0, 1.0, 2.0]))
         self.assertEqual(energy[0], 0.0)
         self.assertGreater(energy[-1], 0.0)
+
+    def test_usb_cli_defaults_to_ts(self):
+        args = build_parser().parse_args(["--gopro-usb", "--bpm", "120"])
+        validate_args(args)
+        self.assertTrue(args.gopro_usb)
+        self.assertEqual(args.gopro_protocol, "TS")
 
 
 if __name__ == "__main__":
