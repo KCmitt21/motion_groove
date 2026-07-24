@@ -1,0 +1,5 @@
+# MediaPipe currently needs a supported CPython; Python 3.11 is recommended.
+mediapipe>=0.10.14,<0.11
+opencv-python>=4.9,<5
+numpy>=1.26,<2
+librosa>=0.10.2,<1
