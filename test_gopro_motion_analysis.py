@@ -1,4 +1,5 @@
 import unittest
+from pathlib import Path
 
 import numpy as np
 
@@ -50,6 +51,11 @@ class MotionMathTests(unittest.TestCase):
         validate_args(args)
         self.assertTrue(args.gopro_usb)
         self.assertEqual(args.gopro_protocol, "RTSP")
+
+    def test_default_outputs_are_under_out_directory(self):
+        args = build_parser().parse_args([])
+        self.assertEqual(args.output, Path("out/motion_metrics.csv"))
+        self.assertEqual(args.summary, Path("out/motion_summary.json"))
 
     def test_udp_source_gets_gopro_receive_buffer_options(self):
         self.assertEqual(

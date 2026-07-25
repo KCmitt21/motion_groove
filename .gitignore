@@ -4,5 +4,4 @@ __pycache__/
 models/
 recordings/
 results/
-motion_metrics.csv
-motion_summary.json
+out/

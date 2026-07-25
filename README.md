@@ -6,8 +6,9 @@
 - 上体前傾: MediaPipeの3D world landmarksによる肩中心—腰中心の角度
 - 拍同期: 頭・上体の動作ピークと音楽の拍との時間差、100 ms以内の割合、0〜1の同期スコア
 
-フレーム別データは `motion_metrics.csv`、全体集計は
-`motion_summary.json` に保存されます。
+フレーム別データは `out/motion_metrics.csv`、全体集計は
+`out/motion_summary.json` に保存されます。`out`ディレクトリが存在しない場合は
+実行時に自動作成されます。
 
 ## 1. インストール
 
@@ -86,8 +87,32 @@ python gopro_motion_analysis.py \
   --summary results/session01.json
 ```
 
-プレビュー画面で`Q`または`Esc`を押すと終了します。終了時にGoProのWebcam
-ストリームを停止し、CSVとJSONを書き出します。
+#### USB接続を安全に終了する
+
+1. プレビュー画面で`Q`または`Esc`を押す
+2. `--no-preview`の場合は、ターミナルで`Control+C`を1回押す
+3. ターミナルに`CSV:`と`集計:`が表示され、プロンプトへ戻るまで待つ
+4. USB-Cケーブルを抜く
+5. 必要ならGoProの電源を切る
+
+通常終了時は、CSVとJSONを書き出してからGoProのWebcamストリームを自動停止
+します。解析コマンドの実行中にいきなりUSBケーブルを抜くことは避けてください。
+
+プログラムの異常終了後もGoProがWebcam状態のままなら、接続したまま次を実行
+します。
+
+```bash
+curl --noproxy '*' \
+  'http://172.23.147.51:8080/gopro/webcam/stop'
+```
+
+停止状態は次のコマンドで確認できます。レスポンスの`status`が`0`または`1`
+なら停止中、`2`ならストリーム動作中です。
+
+```bash
+curl --noproxy '*' \
+  'http://172.23.147.51:8080/gopro/webcam/status'
+```
 
 #### USB接続が動かないとき
 

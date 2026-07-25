@@ -664,8 +664,18 @@ def build_parser() -> argparse.ArgumentParser:
         default="front",
         help="front=正面、side-right/left=被写体が画面内で向く方向",
     )
-    parser.add_argument("--output", type=Path, default=Path("motion_metrics.csv"))
-    parser.add_argument("--summary", type=Path, default=Path("motion_summary.json"))
+    parser.add_argument(
+        "--output",
+        type=Path,
+        default=Path("out/motion_metrics.csv"),
+        help="フレーム別CSVの保存先 (default: out/motion_metrics.csv)",
+    )
+    parser.add_argument(
+        "--summary",
+        type=Path,
+        default=Path("out/motion_summary.json"),
+        help="集計JSONの保存先 (default: out/motion_summary.json)",
+    )
     parser.add_argument(
         "--record-video",
         type=Path,
@@ -784,74 +794,80 @@ def run_capture(args: argparse.Namespace, source: int | str) -> dict[str, Any]:
     last_timestamp_ms = -1
     started = time.monotonic()
     try:
-        with mp.tasks.vision.PoseLandmarker.create_from_options(options) as landmarker:
-            while True:
-                ok, frame = capture.read()
-                if not ok:
-                    break
-                if args.record_video is not None:
-                    if video_writer is None:
-                        args.record_video.parent.mkdir(parents=True, exist_ok=True)
-                        frame_height, frame_width = frame.shape[:2]
-                        video_writer = cv2.VideoWriter(
-                            str(args.record_video),
-                            cv2.VideoWriter_fourcc(*"mp4v"),
-                            actual_fps,
-                            (frame_width, frame_height),
-                        )
-                        if not video_writer.isOpened():
-                            raise RuntimeError(
-                                f"録画ファイルを作成できません: {args.record_video}"
-                            )
-                    video_writer.write(frame)
-                if live:
-                    time_s = time.monotonic() - started
-                else:
-                    time_s = frame_index / actual_fps
-                if args.duration is not None and time_s > args.duration:
-                    break
-
-                rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
-                timestamp_ms = max(
-                    last_timestamp_ms + 1, int(round(time_s * 1000))
-                )
-                last_timestamp_ms = timestamp_ms
-                result = landmarker.detect_for_video(mp_image, timestamp_ms)
-                row: dict[str, Any] = {
-                    "frame": frame_index,
-                    "time_s": time_s,
-                    "pose_detected": 0,
-                }
-                displayed_landmarks = None
-                if result.pose_landmarks and result.pose_world_landmarks:
-                    displayed_landmarks = result.pose_landmarks[0]
-                    try:
-                        row.update(
-                            analyzer.process(
-                                result.pose_landmarks[0],
-                                result.pose_world_landmarks[0],
-                                time_s,
-                            )
-                        )
-                        row["pose_detected"] = 1
-                    except ValueError:
-                        pass
-                rows.append(row)
-
-                if not args.no_preview:
-                    draw_overlay(
-                        cv2,
-                        frame,
-                        displayed_landmarks,
-                        row if row["pose_detected"] else {},
-                        args.visibility_threshold,
-                    )
-                    cv2.imshow("GoPro MediaPipe Motion Analysis", frame)
-                    key = cv2.waitKey(1) & 0xFF
-                    if key in (ord("q"), 27):
+        try:
+            with mp.tasks.vision.PoseLandmarker.create_from_options(options) as landmarker:
+                while True:
+                    ok, frame = capture.read()
+                    if not ok:
                         break
-                frame_index += 1
+                    if args.record_video is not None:
+                        if video_writer is None:
+                            args.record_video.parent.mkdir(parents=True, exist_ok=True)
+                            frame_height, frame_width = frame.shape[:2]
+                            video_writer = cv2.VideoWriter(
+                                str(args.record_video),
+                                cv2.VideoWriter_fourcc(*"mp4v"),
+                                actual_fps,
+                                (frame_width, frame_height),
+                            )
+                            if not video_writer.isOpened():
+                                raise RuntimeError(
+                                    f"録画ファイルを作成できません: {args.record_video}"
+                                )
+                        video_writer.write(frame)
+                    if live:
+                        time_s = time.monotonic() - started
+                    else:
+                        time_s = frame_index / actual_fps
+                    if args.duration is not None and time_s > args.duration:
+                        break
+
+                    rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+                    timestamp_ms = max(
+                        last_timestamp_ms + 1, int(round(time_s * 1000))
+                    )
+                    last_timestamp_ms = timestamp_ms
+                    result = landmarker.detect_for_video(mp_image, timestamp_ms)
+                    row: dict[str, Any] = {
+                        "frame": frame_index,
+                        "time_s": time_s,
+                        "pose_detected": 0,
+                    }
+                    displayed_landmarks = None
+                    if result.pose_landmarks and result.pose_world_landmarks:
+                        displayed_landmarks = result.pose_landmarks[0]
+                        try:
+                            row.update(
+                                analyzer.process(
+                                    result.pose_landmarks[0],
+                                    result.pose_world_landmarks[0],
+                                    time_s,
+                                )
+                            )
+                            row["pose_detected"] = 1
+                        except ValueError:
+                            pass
+                    rows.append(row)
+
+                    if not args.no_preview:
+                        draw_overlay(
+                            cv2,
+                            frame,
+                            displayed_landmarks,
+                            row if row["pose_detected"] else {},
+                            args.visibility_threshold,
+                        )
+                        cv2.imshow("GoPro MediaPipe Motion Analysis", frame)
+                        key = cv2.waitKey(1) & 0xFF
+                        if key in (ord("q"), 27):
+                            break
+                    frame_index += 1
+        except KeyboardInterrupt:
+            print(
+                "\n終了要求を受信しました。結果を保存しています...",
+                file=sys.stderr,
+            )
     finally:
         capture.release()
         if video_writer is not None:
