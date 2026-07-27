@@ -674,8 +674,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--summary",
         type=Path,
-        default=Path("out/motion_summary_{timestamp}_{sequence}.json"),
-        help="集計JSONの保存先 (default: out/motion_summary.json)",
+        help=(
+            "集計JSONの保存先。省略時は"
+            "out/motion_summary_YYYYMMDD_HHMMSS.json"
+        ),
     )
     parser.add_argument(
         "--record-video",
@@ -707,23 +709,33 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def assign_default_gopro_recording_path(
+def assign_default_session_paths(
     args: argparse.Namespace,
     started_at: datetime | None = None,
-) -> Path | None:
-    """Assign a unique default recording path for a direct USB GoPro run."""
-    if not args.gopro_usb or args.record_video is not None:
-        return args.record_video
-
+) -> tuple[Path, Path | None]:
+    """Assign timestamped JSON/video paths without overwriting old sessions."""
     timestamp = (started_at or datetime.now()).strftime("%Y%m%d_%H%M%S")
     output_dir = Path("out")
-    candidate = output_dir / f"gopro_capture_{timestamp}.mp4"
+    needs_summary = args.summary is None
+    needs_recording = args.gopro_usb and args.record_video is None
     sequence = 2
-    while candidate.exists():
-        candidate = output_dir / f"gopro_capture_{timestamp}_{sequence}.mp4"
+
+    suffix = timestamp
+    while True:
+        summary_candidate = output_dir / f"motion_summary_{suffix}.json"
+        recording_candidate = output_dir / f"gopro_capture_{suffix}.mp4"
+        summary_collision = needs_summary and summary_candidate.exists()
+        recording_collision = needs_recording and recording_candidate.exists()
+        if not summary_collision and not recording_collision:
+            break
+        suffix = f"{timestamp}_{sequence}"
         sequence += 1
-    args.record_video = candidate
-    return candidate
+
+    if needs_summary:
+        args.summary = summary_candidate
+    if needs_recording:
+        args.record_video = recording_candidate
+    return args.summary, args.record_video
 
 
 def validate_args(args: argparse.Namespace) -> None:
@@ -928,8 +940,8 @@ def run_capture(args: argparse.Namespace, source: int | str) -> dict[str, Any]:
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    assign_default_session_paths(args)
     if args.gopro_usb:
-        assign_default_gopro_recording_path(args)
         # Fail before starting the camera, and download the model before the
         # stream starts so the first USB session is not left waiting.
         try:

@@ -7,7 +7,8 @@
 - 拍同期: 頭・上体の動作ピークと音楽の拍との時間差、100 ms以内の割合、0〜1の同期スコア
 
 フレーム別データは `out/motion_metrics.csv`、全体集計は
-`out/motion_summary.json` に保存されます。`out`ディレクトリが存在しない場合は
+`out/motion_summary_YYYYMMDD_HHMMSS.json` に保存されます。JSONには実行開始日時が
+付くため、過去の結果と区別できます。`out`ディレクトリが存在しない場合は
 実行時に自動作成されます。
 
 ## 1. インストール
@@ -76,7 +77,8 @@ python gopro_motion_analysis.py \
 `--gopro-usb`で解析すると、受信した映像も自動的に
 `out/gopro_capture_YYYYMMDD_HHMMSS.mp4`へ保存されます。このMP4は映像のみで、
 GoProのマイク音声は入りません。既存ファイルは上書きせず、同じ時刻の名前が
-存在する場合は末尾に連番を付けます。
+存在する場合は末尾に連番を付けます。自動生成されるMP4とJSONには同じ
+タイムスタンプが付くため、同じ撮影のファイルを対応付けられます。
 
 保存先とファイル名を指定したい場合は`--record-video`を追加します。
 
