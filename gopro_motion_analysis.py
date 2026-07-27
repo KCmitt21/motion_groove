@@ -22,6 +22,7 @@ import threading
 import time
 import urllib.request
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 from typing import Any, Sequence
 
@@ -673,13 +674,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--summary",
         type=Path,
-        default=Path("out/motion_summary.json"),
+        default=Path("out/motion_summary_{timestamp}_{sequence}.json"),
         help="集計JSONの保存先 (default: out/motion_summary.json)",
     )
     parser.add_argument(
         "--record-video",
         type=Path,
-        help="解析と同時に受信映像をMP4へ保存（音声なし）",
+        help=(
+            "解析と同時に受信映像をMP4へ保存（音声なし）。"
+            "--gopro-usbでは省略時もout/へ自動保存"
+        ),
     )
     parser.add_argument(
         "--model",
@@ -701,6 +705,25 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--fps", type=float, default=30.0)
     parser.add_argument("--no-preview", action="store_true")
     return parser
+
+
+def assign_default_gopro_recording_path(
+    args: argparse.Namespace,
+    started_at: datetime | None = None,
+) -> Path | None:
+    """Assign a unique default recording path for a direct USB GoPro run."""
+    if not args.gopro_usb or args.record_video is not None:
+        return args.record_video
+
+    timestamp = (started_at or datetime.now()).strftime("%Y%m%d_%H%M%S")
+    output_dir = Path("out")
+    candidate = output_dir / f"gopro_capture_{timestamp}.mp4"
+    sequence = 2
+    while candidate.exists():
+        candidate = output_dir / f"gopro_capture_{timestamp}_{sequence}.mp4"
+        sequence += 1
+    args.record_video = candidate
+    return candidate
 
 
 def validate_args(args: argparse.Namespace) -> None:
@@ -906,6 +929,7 @@ def run_capture(args: argparse.Namespace, source: int | str) -> dict[str, Any]:
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
     if args.gopro_usb:
+        assign_default_gopro_recording_path(args)
         # Fail before starting the camera, and download the model before the
         # stream starts so the first USB session is not left waiting.
         try:
@@ -936,6 +960,8 @@ def main() -> int:
         parser.error(str(exc))
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(f"\nCSV: {args.output}\n集計: {args.summary}")
+    if args.record_video is not None:
+        print(f"映像: {args.record_video}")
     return 0
 
 
