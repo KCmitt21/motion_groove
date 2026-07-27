@@ -7,7 +7,8 @@
 - 拍同期: 頭・上体の動作ピークと音楽の拍との時間差、100 ms以内の割合、0〜1の同期スコア
 
 フレーム別データは `out/motion_metrics.csv`、全体集計は
-`out/motion_summary.json` に保存されます。`out`ディレクトリが存在しない場合は
+`out/motion_summary_YYYYMMDD_HHMMSS.json` に保存されます。JSONには実行開始日時が
+付くため、過去の結果と区別できます。`out`ディレクトリが存在しない場合は
 実行時に自動作成されます。
 
 ## 1. インストール
@@ -73,35 +74,16 @@ python gopro_motion_analysis.py \
 
 別機種でRTSPが使えない場合だけ`--gopro-protocol TS`を指定します。
 
-`--gopro-usb`で解析すると、受信した映像も自動的に
-`out/gopro_capture_YYYYMMDD_HHMMSS.mp4`へ保存されます。このMP4は映像のみで、
-GoProのマイク音声は入りません。既存ファイルは上書きせず、同じ時刻の名前が
-存在する場合は末尾に連番を付けます。
-
-保存先とファイル名を指定したい場合は`--record-video`を追加します。
-
-```bash
-python gopro_motion_analysis.py \
-  --gopro-usb \
-  --view front \
-  --duration 60 \
-  --bpm 120 \
-  --record-video out/session01.mp4 \
-  --output out/session01.csv \
-  --summary out/session01.json
-```
-
 #### USB接続を安全に終了する
 
 1. プレビュー画面で`Q`または`Esc`を押す
 2. `--no-preview`の場合は、ターミナルで`Control+C`を1回押す
-3. ターミナルに`CSV:`、`集計:`、`映像:`が表示され、プロンプトへ戻るまで待つ
+3. ターミナルに`CSV:`と`集計:`が表示され、プロンプトへ戻るまで待つ
 4. USB-Cケーブルを抜く
 5. 必要ならGoProの電源を切る
 
-通常終了時は、MP4を閉じてCSVとJSONを書き出してから、GoProのWebcamストリームを
-自動停止します。解析コマンドの実行中にいきなりUSBケーブルを抜くことは
-避けてください。
+通常終了時は、CSVとJSONを書き出してからGoProのWebcamストリームを自動停止
+します。解析コマンドの実行中にいきなりUSBケーブルを抜くことは避けてください。
 
 プログラムの異常終了後もGoProがWebcam状態のままなら、接続したまま次を実行
 します。

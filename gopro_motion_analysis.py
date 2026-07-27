@@ -674,15 +674,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--summary",
         type=Path,
-        default=Path("out/motion_summary_{timestamp}_{sequence}.json"),
-        help="集計JSONの保存先 (default: out/motion_summary.json)",
-    )
-    parser.add_argument(
-        "--record-video",
-        type=Path,
         help=(
-            "解析と同時に受信映像をMP4へ保存（音声なし）。"
-            "--gopro-usbでは省略時もout/へ自動保存"
+            "集計JSONの保存先。省略時は"
+            "out/motion_summary_YYYYMMDD_HHMMSS.json"
         ),
     )
     parser.add_argument(
@@ -707,22 +701,22 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def assign_default_gopro_recording_path(
+def assign_default_summary_path(
     args: argparse.Namespace,
     started_at: datetime | None = None,
-) -> Path | None:
-    """Assign a unique default recording path for a direct USB GoPro run."""
-    if not args.gopro_usb or args.record_video is not None:
-        return args.record_video
+) -> Path:
+    """Assign a timestamped JSON path without overwriting an old summary."""
+    if args.summary is not None:
+        return args.summary
 
     timestamp = (started_at or datetime.now()).strftime("%Y%m%d_%H%M%S")
     output_dir = Path("out")
-    candidate = output_dir / f"gopro_capture_{timestamp}.mp4"
+    candidate = output_dir / f"motion_summary_{timestamp}.json"
     sequence = 2
     while candidate.exists():
-        candidate = output_dir / f"gopro_capture_{timestamp}_{sequence}.mp4"
+        candidate = output_dir / f"motion_summary_{timestamp}_{sequence}.json"
         sequence += 1
-    args.record_video = candidate
+    args.summary = candidate
     return candidate
 
 
@@ -812,7 +806,6 @@ def run_capture(args: argparse.Namespace, source: int | str) -> dict[str, Any]:
     )
 
     rows: list[dict[str, Any]] = []
-    video_writer = None
     frame_index = 0
     last_timestamp_ms = -1
     started = time.monotonic()
@@ -823,21 +816,6 @@ def run_capture(args: argparse.Namespace, source: int | str) -> dict[str, Any]:
                     ok, frame = capture.read()
                     if not ok:
                         break
-                    if args.record_video is not None:
-                        if video_writer is None:
-                            args.record_video.parent.mkdir(parents=True, exist_ok=True)
-                            frame_height, frame_width = frame.shape[:2]
-                            video_writer = cv2.VideoWriter(
-                                str(args.record_video),
-                                cv2.VideoWriter_fourcc(*"mp4v"),
-                                actual_fps,
-                                (frame_width, frame_height),
-                            )
-                            if not video_writer.isOpened():
-                                raise RuntimeError(
-                                    f"録画ファイルを作成できません: {args.record_video}"
-                                )
-                        video_writer.write(frame)
                     if live:
                         time_s = time.monotonic() - started
                     else:
@@ -893,8 +871,6 @@ def run_capture(args: argparse.Namespace, source: int | str) -> dict[str, Any]:
             )
     finally:
         capture.release()
-        if video_writer is not None:
-            video_writer.release()
         if not args.no_preview:
             cv2.destroyAllWindows()
 
@@ -905,9 +881,6 @@ def run_capture(args: argparse.Namespace, source: int | str) -> dict[str, Any]:
             "source": str(source),
             "camera_view": args.view,
             "forward_lean_threshold_deg": args.forward_threshold,
-            "recorded_video": (
-                str(args.record_video) if args.record_video is not None else None
-            ),
             "beat_method": (
                 "audio"
                 if args.music
@@ -928,8 +901,8 @@ def run_capture(args: argparse.Namespace, source: int | str) -> dict[str, Any]:
 
 
 def run(args: argparse.Namespace) -> dict[str, Any]:
+    assign_default_summary_path(args)
     if args.gopro_usb:
-        assign_default_gopro_recording_path(args)
         # Fail before starting the camera, and download the model before the
         # stream starts so the first USB session is not left waiting.
         try:
@@ -960,8 +933,6 @@ def main() -> int:
         parser.error(str(exc))
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     print(f"\nCSV: {args.output}\n集計: {args.summary}")
-    if args.record_video is not None:
-        print(f"映像: {args.record_video}")
     return 0
 
 

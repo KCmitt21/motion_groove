@@ -5,7 +5,7 @@ from pathlib import Path
 import numpy as np
 
 from gopro_motion_analysis import (
-    assign_default_gopro_recording_path,
+    assign_default_summary_path,
     beat_synchronisation,
     beats_from_bpm,
     build_parser,
@@ -57,24 +57,26 @@ class MotionMathTests(unittest.TestCase):
     def test_default_outputs_are_under_out_directory(self):
         args = build_parser().parse_args([])
         self.assertEqual(args.output, Path("out/motion_metrics.csv"))
-        self.assertEqual(args.summary, Path("out/motion_summary.json"))
+        self.assertIsNone(args.summary)
 
-    def test_usb_run_gets_timestamped_recording_under_out_directory(self):
-        args = build_parser().parse_args(["--gopro-usb"])
-        path = assign_default_gopro_recording_path(
+    def test_run_gets_timestamped_summary_under_out_directory(self):
+        args = build_parser().parse_args([])
+        path = assign_default_summary_path(
             args, datetime(2026, 7, 27, 12, 34, 56)
         )
-        self.assertEqual(path, Path("out/gopro_capture_20260727_123456.mp4"))
-        self.assertEqual(args.record_video, path)
+        self.assertEqual(
+            path, Path("out/motion_summary_20260727_123456.json")
+        )
+        self.assertEqual(args.summary, path)
 
-    def test_explicit_recording_path_is_preserved(self):
+    def test_explicit_summary_path_is_preserved(self):
         args = build_parser().parse_args(
-            ["--gopro-usb", "--record-video", "out/my_session.mp4"]
+            ["--summary", "out/my_summary.json"]
         )
-        path = assign_default_gopro_recording_path(
+        path = assign_default_summary_path(
             args, datetime(2026, 7, 27, 12, 34, 56)
         )
-        self.assertEqual(path, Path("out/my_session.mp4"))
+        self.assertEqual(path, Path("out/my_summary.json"))
 
     def test_udp_source_gets_gopro_receive_buffer_options(self):
         self.assertEqual(
