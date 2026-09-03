@@ -138,7 +138,24 @@ python run_analysis.py run --config configs/mvp.yaml --max-seconds 60
 最初の有効フレームを左右順で意味IDへ割り当て、以後は有効な身体点の中心と直前位置の距離が
 最小になる対応を選びます。閉塞後の再登場や大きな交差は重畳動画で必ず確認してください。
 
-Face Landmarkerの6顔点をPnPへ入力してyaw/pitch/rollを推定し、頭向き、相手の2D方向、
+全画面では顔が小さすぎるため、MMPose WholeBodyの顔68点から人物別ROIを作り、余白を付けて
+`256x256`へ拡大した画像だけをFace Landmarkerへ入力します。検出ランドマークは元フレーム座標へ
+戻してから、6顔点をPnPへ入力してyaw/pitch/rollを推定します。ROI作成時点で人物IDが確定して
+いるため、検出顔はその人物へ直接割り当てます。MMPoseが短時間欠損した場合は直前ROIを再利用し、
+検出失敗時は別の余白倍率で再試行します。
+
+```yaml
+face:
+  roi:
+    enabled: true
+    scale: 2.5
+    retry_scales: [3.5]
+    min_size_px: 96
+    output_size: 256
+    reuse_frames: 5
+```
+
+頭向き、相手の2D方向、
 自楽器点から`partner / own_instrument / forward / downward / unknown`へ分類します。閾値は
 `gaze`節にあります。DLC点が未指定の場合、自楽器判定に必要な点は欠損になり、無理に補いません。
 

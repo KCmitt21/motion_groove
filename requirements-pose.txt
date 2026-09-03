@@ -1,4 +1,4 @@
-python3.11 -m venv .venv-analysis# Install the matching PyTorch build first (see README), then use OpenMIM for OpenMMLab packages.
+# Install the matching PyTorch build first (see README), then use OpenMIM for OpenMMLab packages.
 torch>=2.2
 torchvision>=0.17
 openmim>=0.3.9

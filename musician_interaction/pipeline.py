@@ -10,7 +10,7 @@ import pandas as pd
 
 from .audio import analyze_audio, extract_audio, probe_audio_start
 from .config import AppConfig
-from .face import assign_faces, build_face_estimator
+from .face import FaceRoiState, build_face_estimator, infer_pose_guided_faces
 from .features import (
     BODY_INDEX, audio_motion_correlations, event_triggered_average,
     instrument_motion_events, instrument_pose_motion, performer_cross_correlations, positions_to_motion,
@@ -137,8 +137,11 @@ def run_pipeline(config: AppConfig, max_seconds: float | None = None, max_frames
                                  float(pose_config.get("keypoint_score_threshold", 0.3)))
         for camera, item in camera_configs.items()
     }
-    face_estimators = {camera: build_face_estimator(data.get("face", {"enabled": False}), config.resolve)
+    face_config = data.get("face", {"enabled": False})
+    face_estimators = {camera: build_face_estimator(face_config, config.resolve)
                        for camera in camera_paths}
+    face_roi_states: dict[str, FaceRoiState] = {camera: {} for camera in camera_paths}
+    face_roi_config = face_config.get("roi", {"enabled": False})
     instrument_config = data.get("instruments", {})
     dlc_csv = instrument_config.get("keypoint_csv", {})
     instrument_stores = {
@@ -168,8 +171,10 @@ def run_pipeline(config: AppConfig, max_seconds: float | None = None, max_frames
                 for camera, frame in frames.items():
                     detections = estimators[camera].infer(frame)
                     assigned = trackers[camera].assign(detections)
-                    faces = face_estimators[camera].infer(frame)
-                    heads = assign_faces(faces, assigned)
+                    heads = infer_pose_guided_faces(
+                        face_estimators[camera], frame, assigned, score_threshold,
+                        face_roi_config, face_roi_states[camera],
+                    )
                     instruments = {
                         "guitar": instrument_stores[camera].get(frame_idx, "guitar"),
                         "bass": instrument_stores[camera].get(frame_idx, "bass"),

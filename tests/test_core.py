@@ -9,11 +9,12 @@ import numpy as np
 import pandas as pd
 
 from musician_interaction.audio import AudioFeatures
+from musician_interaction.face import FaceHeadPoseEstimator, infer_pose_guided_faces, pose_face_roi
 from musician_interaction.features import lagged_correlation, positions_to_motion
 from musician_interaction.pose import PerformerTracker
 from musician_interaction.qc import estimate_sync_offsets
 from musician_interaction.triangulation import reprojection_error, triangulate_dlt
-from musician_interaction.types import PoseDetection
+from musician_interaction.types import HeadPose, PoseDetection
 from musician_interaction.video import FPS, SynchronizedVideoReader, time_sec
 
 
@@ -50,6 +51,54 @@ class TrackingTests(unittest.TestCase):
         self.assertEqual(first["bassist"].center[0], 20)
         second = tracker.assign([self.detection(77), self.detection(23)])
         self.assertEqual(second["bassist"].center[0], 23)
+
+
+class FaceRoiTests(unittest.TestCase):
+    @staticmethod
+    def face_detection() -> PoseDetection:
+        points = np.full((133, 2), np.nan)
+        scores = np.zeros(133)
+        points[23:27] = np.array([[90, 40], [110, 40], [90, 60], [110, 60]], dtype=float)
+        scores[23:27] = 1.0
+        return PoseDetection(points, scores)
+
+    def test_roi_uses_wholebody_face_points_and_padding(self):
+        roi = pose_face_roi(self.face_detection(), (100, 200, 3), .3, scale=2.5, min_size_px=20)
+        self.assertEqual(roi, (75, 25, 125, 75))
+
+    def test_model_axis_correction_makes_frontal_pose_neutral(self):
+        yaw, pitch, roll = FaceHeadPoseEstimator._rotation_to_euler(
+            FaceHeadPoseEstimator.MODEL_TO_CAMERA_AXES @ FaceHeadPoseEstimator.MODEL_TO_CAMERA_AXES
+        )
+        np.testing.assert_allclose([yaw, pitch, roll], [0, 0, 0], atol=1e-10)
+
+    def test_roi_inference_retries_and_preserves_identity(self):
+        class FakeEstimator:
+            def __init__(self):
+                self.calls = []
+
+            def infer_roi(self, frame, roi, output_size):
+                self.calls.append((roi, output_size))
+                if len(self.calls) == 1:
+                    return []
+                x0, y0, x1, y1 = roi
+                return [HeadPose(center=np.array([(x0 + x1) / 2, (y0 + y1) / 2]))]
+
+        estimator = FakeEstimator()
+        state = {}
+        result = infer_pose_guided_faces(
+            estimator,
+            np.zeros((100, 200, 3), dtype=np.uint8),
+            {"guitarist": self.face_detection()},
+            .3,
+            {"enabled": True, "scale": 2.5, "retry_scales": [3.5], "min_size_px": 20,
+             "output_size": 256, "reuse_frames": 5},
+            state,
+        )
+        self.assertIsNotNone(result["guitarist"])
+        self.assertEqual(len(estimator.calls), 2)
+        self.assertEqual(estimator.calls[0][1], 256)
+        self.assertIn("guitarist", state)
 
 
 class FeatureTests(unittest.TestCase):

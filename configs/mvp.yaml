@@ -31,6 +31,14 @@ face:
   min_score: 0.50
   isolated_process: true
   timeout_sec: 30
+  roi:
+    # MMPose WholeBodyの顔点から人物別領域を切り出し、顔認識時だけ拡大する。
+    enabled: true
+    scale: 2.5
+    retry_scales: [3.5]
+    min_size_px: 96
+    output_size: 256
+    reuse_frames: 5
 
 gaze:
   down_pitch_deg: 18.0
