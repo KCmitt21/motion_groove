@@ -1,0 +1,27 @@
+[project]
+project = "musician_interaction"
+model_folder = "../dlc/project"
+nesting = 1
+video_extension = "mov"
+
+[calibration]
+board_type = "charuco"
+board_size = [7, 5]
+board_marker_bits = 5
+board_marker_dict_number = 100
+board_square_side_length = 40.0
+board_marker_length = 30.0
+
+[triangulation]
+cam_regex = "cam_(guitar_close|bass_close|wide)"
+score_threshold = 0.5
+triangulate = true
+optim = true
+
+[filter]
+enabled = true
+type = "medfilt"
+medfilt = 13
+offset_threshold = 25
+score_threshold = 0.5
+

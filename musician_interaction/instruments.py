@@ -14,7 +14,9 @@ class InstrumentKeypointStore:
     def __init__(self, csv_path: Path | None, score_threshold: float = 0.5) -> None:
         self.score_threshold = score_threshold
         self.rows: dict[tuple[int, str], InstrumentPose] = {}
-        if csv_path is not None and csv_path.exists():
+        if csv_path is not None:
+            if not csv_path.exists():
+                raise FileNotFoundError(f"Instrument keypoint CSV not found: {csv_path}")
             self._load(csv_path)
 
     def _load(self, path: Path) -> None:

@@ -1,0 +1,36 @@
+video:
+  fps: "30000/1001"
+  start_timecode: "14:03:53:01"
+  max_seconds: 2.0
+  cameras:
+    cam_guitar_close:
+      path: movie/exp_2026_08_29/GX010235.mov
+      visible_performers: [guitarist]
+      initial_left_to_right: [guitarist]
+    cam_bass_close:
+      path: movie/exp_2026_08_29/GX010262.mov
+      visible_performers: [bassist]
+      initial_left_to_right: [bassist]
+    cam_wide:
+      path: movie/exp_2026_08_29/GX010340.mov
+      visible_performers: [bassist, guitarist]
+      initial_left_to_right: [bassist, guitarist]
+pose:
+  backend: mock
+  keypoint_score_threshold: 0.30
+face:
+  enabled: false
+gaze: {down_pitch_deg: 18.0, forward_yaw_deg: 15.0, forward_pitch_deg: 15.0, target_tolerance_deg: 25.0}
+instruments: {keypoint_csv: {}, score_threshold: 0.50}
+audio: {wav_path: null, source_camera: cam_wide, sample_rate: 48000, hop_length: 512}
+analysis: {max_lag_sec: 0.5, event_window_sec: 0.5}
+qc: {max_sync_lag_sec: 0.5, reprojection_warn_px: 5.0}
+output: {directory: out/mock, parquet: false, overlay_video: true, overlay_scale: 0.25}
+calibration:
+  images_directory: calibration/images
+  image_glob: "*.png"
+  output_file: calibration/calibration.json
+  triangulate_if_available: true
+  charuco: {dictionary: DICT_5X5_100, squares_x: 7, squares_y: 5, square_length_m: 0.040,
+            marker_length_m: 0.030, reference_camera: cam_wide}
+

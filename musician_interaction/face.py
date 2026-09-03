@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import Any
+import multiprocessing as multiprocessing
 
 import cv2
 import numpy as np
@@ -31,7 +32,7 @@ class FaceHeadPoseEstimator:
         except ImportError as exc:
             raise RuntimeError("MediaPipe is not installed; install requirements-core.txt") from exc
         options = vision.FaceLandmarkerOptions(
-            base_options=BaseOptions(model_asset_path=str(model_path)),
+            base_options=BaseOptions(model_asset_path=str(model_path), delegate=BaseOptions.Delegate.CPU),
             running_mode=vision.RunningMode.IMAGE,
             num_faces=max_faces,
             min_face_detection_confidence=min_score,
@@ -89,6 +90,82 @@ class NullHeadPoseEstimator:
         return []
 
 
+def _face_worker(connection: Any, model_path: str, min_score: float, max_faces: int) -> None:
+    try:
+        estimator = FaceHeadPoseEstimator(Path(model_path), min_score, max_faces)
+    except BaseException as exc:
+        connection.send(("error", f"{type(exc).__name__}: {exc}"))
+        connection.close()
+        return
+    connection.send(("ready", None))
+    try:
+        while True:
+            frame = connection.recv()
+            if frame is None:
+                break
+            connection.send(("result", estimator.infer(frame)))
+    finally:
+        estimator.close()
+        connection.close()
+
+
+class IsolatedFaceHeadPoseEstimator:
+    """Keep native MediaPipe failures from terminating the main analysis process."""
+
+    def __init__(self, model_path: Path, min_score: float, max_faces: int, timeout_sec: float = 30.0) -> None:
+        context = multiprocessing.get_context("spawn")
+        self.connection, child_connection = context.Pipe()
+        self.process = context.Process(
+            target=_face_worker, args=(child_connection, str(model_path), min_score, max_faces), daemon=True
+        )
+        self.timeout_sec = timeout_sec
+        self.process.start()
+        child_connection.close()
+        if not self.connection.poll(timeout_sec):
+            self.close()
+            raise RuntimeError("MediaPipe Face Landmarker worker did not initialize")
+        try:
+            message, payload = self.connection.recv()
+        except EOFError as exc:
+            raise RuntimeError(
+                "MediaPipe Face Landmarker worker crashed during initialization; check the MediaPipe/macOS version"
+            ) from exc
+        if message == "error":
+            self.close()
+            raise RuntimeError(f"MediaPipe Face Landmarker initialization failed: {payload}")
+        if message != "ready":
+            self.close()
+            raise RuntimeError(f"Unexpected Face Landmarker worker response: {message}: {payload}")
+
+    def infer(self, frame: np.ndarray) -> list[HeadPose]:
+        if not self.process.is_alive():
+            raise RuntimeError("MediaPipe Face Landmarker worker exited unexpectedly")
+        self.connection.send(frame)
+        if not self.connection.poll(self.timeout_sec):
+            raise RuntimeError("MediaPipe Face Landmarker inference timed out")
+        try:
+            message, payload = self.connection.recv()
+        except EOFError as exc:
+            raise RuntimeError("MediaPipe Face Landmarker worker crashed during inference") from exc
+        if message != "result":
+            raise RuntimeError(f"Unexpected Face Landmarker worker response: {message}")
+        return payload
+
+    def close(self) -> None:
+        if getattr(self, "process", None) is None:
+            return
+        if self.process.is_alive():
+            try:
+                self.connection.send(None)
+                self.process.join(timeout=3)
+            except (BrokenPipeError, EOFError):
+                pass
+        if self.process.is_alive():
+            self.process.terminate()
+            self.process.join(timeout=3)
+        self.connection.close()
+
+
 def assign_faces(
     faces: list[HeadPose], performers: dict[str, PoseDetection | None]
 ) -> dict[str, HeadPose | None]:
@@ -104,9 +181,12 @@ def assign_faces(
     return assigned
 
 
-def build_face_estimator(config: dict[str, Any], resolve: Any) -> FaceHeadPoseEstimator | NullHeadPoseEstimator:
+def build_face_estimator(config: dict[str, Any], resolve: Any) -> Any:
     if not config.get("enabled", True):
         return NullHeadPoseEstimator()
     model = resolve(config["model_path"])
-    return FaceHeadPoseEstimator(model, float(config.get("min_score", 0.5)), int(config.get("max_faces", 2)))
-
+    min_score = float(config.get("min_score", 0.5))
+    max_faces = int(config.get("max_faces", 2))
+    if config.get("isolated_process", True):
+        return IsolatedFaceHeadPoseEstimator(model, min_score, max_faces, float(config.get("timeout_sec", 30)))
+    return FaceHeadPoseEstimator(model, min_score, max_faces)

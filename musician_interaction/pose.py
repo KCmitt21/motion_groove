@@ -15,7 +15,7 @@ class PoseEstimator(Protocol):
 class MMPoseWholeBodyEstimator:
     """Thin adapter around MMPoseInferencer (RTMPose WholeBody + RTMDet)."""
 
-    def __init__(self, pose2d: str, det_model: str, device: str = "cpu") -> None:
+    def __init__(self, pose2d: str, det_model: str | None, device: str = "cpu") -> None:
         try:
             from mmpose.apis import MMPoseInferencer
         except ImportError as exc:
@@ -92,7 +92,15 @@ class PerformerTracker:
         if not usable:
             return output
         if not self.previous:
-            ordered = sorted(usable, key=lambda detection: detection.center[0])
+            if len(self.visible) == 1:
+                def prominence(detection: PoseDetection) -> float:
+                    if detection.bbox is not None and len(detection.bbox) >= 4:
+                        return float(max(0, detection.bbox[2] - detection.bbox[0]) *
+                                     max(0, detection.bbox[3] - detection.bbox[1]))
+                    return float(np.sum(detection.scores >= self.min_score))
+                ordered = [max(usable, key=prominence)]
+            else:
+                ordered = sorted(usable, key=lambda detection: detection.center[0])
             for name, detection in zip(self.initial_order, ordered):
                 if name in output:
                     output[name] = detection

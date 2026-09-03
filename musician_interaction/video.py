@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from fractions import Fraction
+import json
 from pathlib import Path
+import subprocess
 from typing import Iterator
 
 import cv2
@@ -23,6 +25,23 @@ class VideoInfo:
 
 def time_sec(frame_idx: int) -> float:
     return frame_idx * 1001.0 / 30000.0
+
+
+def probe_timecodes(path: Path) -> set[str]:
+    completed = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "stream_tags=timecode:format_tags=timecode",
+         "-of", "json", str(path)], capture_output=True, text=True, check=False
+    )
+    if completed.returncode != 0:
+        raise RuntimeError(f"ffprobe failed for {path}: {completed.stderr.strip()}")
+    payload = json.loads(completed.stdout)
+    values = set()
+    for stream in payload.get("streams", []):
+        if stream.get("tags", {}).get("timecode"):
+            values.add(stream["tags"]["timecode"])
+    if payload.get("format", {}).get("tags", {}).get("timecode"):
+        values.add(payload["format"]["tags"]["timecode"])
+    return values
 
 
 class SynchronizedVideoReader:
@@ -77,4 +96,3 @@ class SynchronizedVideoReader:
             if not ok_all:
                 break
             yield frame_idx, time_sec(frame_idx), batch
-
