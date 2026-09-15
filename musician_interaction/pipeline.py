@@ -15,8 +15,9 @@ from .features import (
     BODY_INDEX, audio_motion_correlations, event_triggered_average,
     instrument_motion_events, instrument_pose_motion, performer_cross_correlations, positions_to_motion,
 )
-from .gaze import classify_gaze
+from .gaze import classify_gaze_detailed
 from .instruments import InstrumentKeypointStore
+from .laeo import laeo_frame_row, smooth_laeo_scores
 from .outputs import OverlayWriter, draw_overlay, save_graphs, write_manifest, write_table
 from .pose import PerformerTracker, build_pose_estimator
 from .qc import estimate_sync_offsets, instrument_quality, keypoint_quality, reprojection_quality
@@ -142,6 +143,16 @@ def run_pipeline(config: AppConfig, max_seconds: float | None = None, max_frames
                        for camera in camera_paths}
     face_roi_states: dict[str, FaceRoiState] = {camera: {} for camera in camera_paths}
     face_roi_config = face_config.get("roi", {"enabled": False})
+    laeo_config = data.get("laeo", {})
+    laeo_enabled = bool(laeo_config.get("enabled", True))
+    laeo_performers = tuple(laeo_config.get("performers", ("bassist", "guitarist")))
+    if len(laeo_performers) != 2 or laeo_performers[0] == laeo_performers[1]:
+        raise ValueError("laeo.performers must contain two distinct performer names")
+    laeo_sigma_deg = float(laeo_config.get("sigma_deg", 25.0))
+    if not np.isfinite(laeo_sigma_deg) or laeo_sigma_deg <= 0:
+        raise ValueError(f"laeo.sigma_deg must be positive and finite, got {laeo_sigma_deg}")
+    configured_laeo_cameras = laeo_config.get("cameras")
+    laeo_cameras = None if configured_laeo_cameras is None else set(configured_laeo_cameras)
     instrument_config = data.get("instruments", {})
     dlc_csv = instrument_config.get("keypoint_csv", {})
     instrument_stores = {
@@ -151,6 +162,7 @@ def run_pipeline(config: AppConfig, max_seconds: float | None = None, max_frames
     }
     keypoint_rows: list[dict] = []
     head_rows: list[dict] = []
+    laeo_rows: list[dict] = []
     instrument_rows: list[dict] = []
     position_rows: list[dict] = []
     frame_rows: list[dict] = []
@@ -185,15 +197,24 @@ def run_pipeline(config: AppConfig, max_seconds: float | None = None, max_frames
                         _add_keypoint_rows(keypoint_rows, camera, frame_idx, timestamp, performer, detection)
                         partner_name = "bassist" if performer == "guitarist" else "guitarist"
                         own_name = "guitar" if performer == "guitarist" else "bass"
-                        label, gaze_score = classify_gaze(heads.get(performer), detection, assigned.get(partner_name),
-                                                         instruments[own_name], data.get("gaze", {}))
+                        label, gaze_score, unknown_reason = classify_gaze_detailed(
+                            heads.get(performer), detection, assigned.get(partner_name), instruments[own_name],
+                            data.get("gaze", {}), camera, performer,
+                        )
                         gaze_labels[performer] = label
                         head = heads.get(performer)
+                        position_3d = head.position_3d if head is not None else np.full(3, np.nan)
+                        gaze_direction_3d = head.gaze_direction_3d if head is not None else np.full(3, np.nan)
                         head_rows.append({"frame_idx": frame_idx, "time_sec": timestamp, "camera": camera,
                                           "performer": performer, "yaw_deg": head.yaw if head else np.nan,
                                           "pitch_deg": head.pitch if head else np.nan, "roll_deg": head.roll if head else np.nan,
+                                          "head_position_x": position_3d[0], "head_position_y": position_3d[1],
+                                          "head_position_z": position_3d[2],
+                                          "gaze_direction_x": gaze_direction_3d[0],
+                                          "gaze_direction_y": gaze_direction_3d[1],
+                                          "gaze_direction_z": gaze_direction_3d[2],
                                           "face_score": head.score if head else np.nan, "gaze_target": label,
-                                          "gaze_score": gaze_score})
+                                          "gaze_score": gaze_score, "unknown_reason": unknown_reason})
                         for feature, indices in BODY_INDEX.items():
                             if feature == "head" and head is not None:
                                 x, y, score = *head.center, head.score
@@ -208,6 +229,17 @@ def run_pipeline(config: AppConfig, max_seconds: float | None = None, max_frames
                                               "performer": performer, "feature": "instrument", "x": instrument_pose.points[0, 0],
                                               "y": instrument_pose.points[0, 1], "score": instrument_pose.scores[0],
                                               "frame_width": frame.shape[1], "frame_height": frame.shape[0]})
+                    visible = set(camera_configs[camera]["visible_performers"])
+                    if (
+                        laeo_enabled
+                        and (laeo_cameras is None or camera in laeo_cameras)
+                        and set(laeo_performers).issubset(visible)
+                    ):
+                        performer_a, performer_b = laeo_performers
+                        laeo_rows.append(laeo_frame_row(
+                            frame_idx, timestamp, camera, performer_a, performer_b,
+                            heads.get(performer_a), heads.get(performer_b), laeo_sigma_deg,
+                        ))
                     for instrument, pose in instruments.items():
                         for idx, name in enumerate(INSTRUMENT_POINTS):
                             instrument_rows.append({"frame_idx": frame_idx, "time_sec": timestamp, "camera": camera,
@@ -227,6 +259,13 @@ def run_pipeline(config: AppConfig, max_seconds: float | None = None, max_frames
 
     keypoints = pd.DataFrame(keypoint_rows)
     heads = _head_angular_velocity(pd.DataFrame(head_rows), fps)
+    laeo_columns = [
+        "frame_idx", "timestamp", "time_sec", "camera", "performer_A", "performer_B",
+        "theta_A", "theta_B", "p_A", "p_B", "laeo_score",
+    ]
+    laeo = smooth_laeo_scores(
+        pd.DataFrame(laeo_rows, columns=laeo_columns), laeo_config.get("smoothing", {})
+    )
     instruments = pd.DataFrame(instrument_rows)
     motion = positions_to_motion(pd.DataFrame(position_rows), fps)
     frames = pd.DataFrame(frame_rows)
@@ -270,6 +309,7 @@ def run_pipeline(config: AppConfig, max_seconds: float | None = None, max_frames
 
     parquet = bool(data["output"].get("parquet", True))
     tables = {"frames": frames, "pose_keypoints_2d": keypoints, "head_pose_gaze": heads,
+              "laeo_by_time": laeo,
               "instrument_keypoints_2d": instruments, "motion_features": motion,
               "instrument_motion_features": instrument_motion, "instrument_motion_events": instrument_events,
               "audio_features": audio_framewise, "audio_onsets": onsets,
@@ -297,6 +337,13 @@ def run_pipeline(config: AppConfig, max_seconds: float | None = None, max_frames
         "last_frame_idx": processed - 1 if processed else None,
         "last_time_sec": (processed - 1) * 1001 / 30000 if processed else None,
         "triangulation": triangulation_status, "pose_backend": backend,
+        "laeo": {
+            "enabled": laeo_enabled,
+            "performers": list(laeo_performers),
+            "sigma_deg": laeo_sigma_deg,
+            "smoothing": laeo_config.get("smoothing", {}),
+            "rows": len(laeo),
+        },
         "scientific_warning": "mock pose output is synthetic and must not be used for research" if backend == "mock" else None,
     }
     write_manifest(output_dir / "manifest.json", manifest)

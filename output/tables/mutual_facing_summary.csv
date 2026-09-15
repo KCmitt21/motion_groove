@@ -1,0 +1,2 @@
+camera,definition,total_frames,both_faces_detected_frames,mutual_facing_frames,mutual_facing_duration_sec,mutual_facing_percent_of_all_frames,mutual_facing_percent_when_both_faces_detected,one_sided_partner_frames,one_sided_partner_duration_sec
+cam_wide,both performers are classified as partner in the same frame,4035,2883,0,0.0,0.0,0.0,3,0.10010000000000001

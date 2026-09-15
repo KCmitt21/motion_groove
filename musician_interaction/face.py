@@ -174,15 +174,22 @@ class FaceHeadPoseEstimator:
                 [(x0 + point.x * (x1 - x0), y0 + point.y * (y1 - y0)) for point in face], dtype=float
             )
             image_points = xy[self.FACE_INDICES]
-            ok, rotation_vector, _ = cv2.solvePnP(
+            ok, rotation_vector, translation_vector = cv2.solvePnP(
                 self.MODEL_POINTS, image_points, camera_matrix, np.zeros((4, 1)), flags=cv2.SOLVEPNP_ITERATIVE
             )
             if not ok:
                 continue
-            rotation, _ = cv2.Rodrigues(rotation_vector)
-            rotation = rotation @ self.MODEL_TO_CAMERA_AXES
+            raw_rotation, _ = cv2.Rodrigues(rotation_vector)
+            rotation = raw_rotation @ self.MODEL_TO_CAMERA_AXES
             yaw, pitch, roll = self._rotation_to_euler(rotation)
-            output.append(HeadPose(yaw, pitch, roll, 1.0, np.nanmean(xy, axis=0), xy))
+            # The model's +z axis exits through the face.  Equivalently this is
+            # -rotation[:, 2] after converting to the reporting coordinate axes.
+            gaze_direction = raw_rotation[:, 2].astype(float)
+            gaze_direction /= np.linalg.norm(gaze_direction)
+            output.append(HeadPose(
+                yaw, pitch, roll, 1.0, np.nanmean(xy, axis=0), xy,
+                translation_vector.reshape(3).astype(float), gaze_direction,
+            ))
         return output
 
     def infer(self, frame: np.ndarray) -> list[HeadPose]:

@@ -21,6 +21,12 @@ pose:
 face:
   enabled: false
 gaze: {down_pitch_deg: 18.0, forward_yaw_deg: 15.0, forward_pitch_deg: 15.0, target_tolerance_deg: 25.0}
+laeo:
+  enabled: true
+  cameras: [cam_wide]
+  performers: [bassist, guitarist]
+  sigma_deg: 25.0
+  smoothing: {method: gaussian, radius_frames: 10, gaussian_sigma_frames: 4.0}
 instruments: {keypoint_csv: {}, score_threshold: 0.50}
 audio: {wav_path: null, source_camera: cam_wide, sample_rate: 48000, hop_length: 512}
 analysis: {max_lag_sec: 0.5, event_window_sec: 0.5}
@@ -33,4 +39,3 @@ calibration:
   triangulate_if_available: true
   charuco: {dictionary: DICT_5X5_100, squares_x: 7, squares_y: 5, square_length_m: 0.040,
             marker_length_m: 0.030, reference_camera: cam_wide}
-

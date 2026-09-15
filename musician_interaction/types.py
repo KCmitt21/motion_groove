@@ -30,10 +30,13 @@ class HeadPose:
     score: float = np.nan
     center: np.ndarray = field(default_factory=lambda: np.full(2, np.nan))
     landmarks: np.ndarray | None = None
+    # Camera coordinates from solvePnP.  The gaze vector is unit length and
+    # points out through the front of the face.
+    position_3d: np.ndarray = field(default_factory=lambda: np.full(3, np.nan))
+    gaze_direction_3d: np.ndarray = field(default_factory=lambda: np.full(3, np.nan))
 
 
 @dataclass
 class InstrumentPose:
     points: np.ndarray = field(default_factory=lambda: np.full((5, 2), np.nan))
     scores: np.ndarray = field(default_factory=lambda: np.full(5, np.nan))
-

@@ -155,9 +155,74 @@ face:
     reuse_frames: 5
 ```
 
-頭向き、相手の2D方向、
+### LAEO連続スコア
+
+相互注視の主解析には、カメラ基準のyaw分類ではなく`laeo_by_time`を使います。PnPの回転から
+顔前方の単位ベクトル`g_A`, `g_B`、PnPの並進から同一カメラ座標系の顔位置を得て、顔AからB、
+BからAへのベクトルとの角度`theta_A`, `theta_B`（度）を計算します。各人物のスコアと相互スコアは
+次式です。
+
+```text
+p_A = exp(-(theta_A ** 2) / (2 * sigma_deg ** 2))
+p_B = exp(-(theta_B ** 2) / (2 * sigma_deg ** 2))
+laeo_score = p_A * p_B
+```
+
+```yaml
+laeo:
+  enabled: true
+  cameras: [cam_wide]
+  performers: [bassist, guitarist]  # 順にA, B
+  sigma_deg: 25.0
+  smoothing:
+    method: gaussian                # moving_averageも指定可能
+    radius_frames: 10               # 前後10フレーム
+    gaussian_sigma_frames: 4.0
+```
+
+`laeo_by_time.csv`には`timestamp`, `theta_A`, `theta_B`, `p_A`, `p_B`, `laeo_score`と、
+平滑化後の`laeo_score_smoothed`を保存します。平滑化は中央窓なので前後のフレームを使い、顔検出の
+欠損値を補間したり欠損区間をまたいだりしません。`head_pose_gaze`にも監査用としてPnPの顔位置と
+顔方向ベクトルを保存します。
+
+PnP位置は標準顔モデルと近似焦点距離から求める単眼3D推定であり、厳密な実空間座標ではありません。
+そのため`sigma_deg`は目視ラベルを用いて調整し、奥行き差が大きい配置ではカメラ内部パラメータを
+使った評価も検討してください。
+
+従来の可視化・レポートとの互換性のため、頭向き、相手の2D方向、
 自楽器点から`partner / own_instrument / forward / downward / unknown`へ分類します。閾値は
-`gaze`節にあります。DLC点が未指定の場合、自楽器判定に必要な点は欠損になり、無理に補いません。
+`gaze`節にありますが、これはLAEOの主スコアではありません。DLC点が未指定の場合、自楽器判定に
+必要な点は欠損になり、無理に補いません。
+
+固定配置の`cam_wide`では、画像上の人物間ベクトルではなく、相手を見ていることが既知のフレーム
+から求めた人物別のyaw/pitch中央値を使えます。既知フレームを`head_pose_gaze.csv`から選び、
+中央値を次のように設定します。許容角は既知フレームのばらつきを確認して調整してください。
+
+```yaml
+gaze:
+  reference_angles:
+    cam_wide:
+      bassist:
+        partner:
+          yaw_deg: -40.0       # 既知フレームの中央値に置き換える
+          pitch_deg: 2.0       # 既知フレームの中央値に置き換える
+          yaw_tolerance_deg: 20.0
+          pitch_tolerance_deg: 15.0
+      guitarist:
+        partner:
+          yaw_deg: 40.0        # 既知フレームの中央値に置き換える
+          pitch_deg: 2.0       # 既知フレームの中央値に置き換える
+          yaw_tolerance_deg: 20.0
+          pitch_tolerance_deg: 15.0
+```
+
+同じ人物の下へ`forward`、`downward`、`own_instrument`も同じ形式で追加できます。複数の参照状態の
+許容範囲が重なった場合は、yaw/pitchの正規化距離が最も小さい状態を採用します。
+
+`reference_angles`にカメラ名がある場合、そのカメラでは従来の画像ベクトル方式へフォールバック
+しません。人物の参照値が未設定なら`unknown_reason=reference_profile_missing`、参照楕円の外なら
+`outside_reference_tolerance`になります。また、`head_pose_quality`で設定した絶対角上限を超えた
+PnP結果は`head_pose_angle_outlier`として分類から除外します。
 
 ## 楽器5点姿勢推定
 
@@ -352,6 +417,7 @@ Aniposeを使う場合は`configs/anipose.toml`を実際のフォルダ構成へ
 `manifest.json`を保存します。主な表は以下です。
 
 - `pose_keypoints_2d`, `head_pose_gaze`, `instrument_keypoints_2d`
+- `laeo_by_time`: 相手方向との角度、人物別確率、元のLAEOスコア、時間平滑化後スコア
 - `audio_features`, `audio_onsets`, `motion_features`
 - `performer_cross_correlation`: 正lagは「bassがguitarに遅れる」
 - `audio_motion_lag`: 正lagは「動作が音に遅れる」
@@ -363,6 +429,22 @@ Aniposeを使う場合は`configs/anipose.toml`を実際のフォルダ構成へ
 低信頼度座標は生値表には残しますが、速度・三角測量には使用しません。欠損区間をまたぐ速度は
 計算せず、相関には両系列が有効な標本だけを使います。最終的な採用前に重畳動画、ID交差、
 顔角の符号、DLC点、同期ドリフト、再投影誤差を試行ごとに確認してください。
+
+解析済みの`head_pose_gaze.csv`から、頭向きの時系列、分類別集計、ワイド映像で両者が同時に
+`partner`となる区間を別表へ整理できます。
+
+```bash
+python run_analysis.py head-summary \
+  --input out/mvp/tables/head_pose_gaze.csv \
+  --output-dir output/tables \
+  --camera cam_wide
+```
+
+`mutual_facing`は、同一フレームでベーシストとギタリストの両方が`partner`に分類された場合のみ
+`True`です。片方だけの場合は`one_sided_partner=True`として区別します。
+`head_direction_by_time`にはフレーム別の`unknown_reason`、`unknown_reason_summary`にはカメラ・人物・
+理由別の件数、全フレーム比率、unknown内比率を保存します。古い`head_pose_gaze.csv`も読み込めますが、
+当時の詳細理由は`reason_not_recorded`として扱います。
 
 ## テスト
 
