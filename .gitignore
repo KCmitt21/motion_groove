@@ -4,5 +4,6 @@ __pycache__/
 models/
 results/
 out/
+output/
 movie/
 datasets/
