@@ -1,0 +1,28 @@
+path: /Users/keishi-mac/code/motion_groove/datasets/instruments_pose
+train: images/train
+val: images/val
+names:
+  0: guitar
+  1: bass
+kpt_shape:
+- 5
+- 3
+flip_idx:
+- 0
+- 1
+- 2
+- 3
+- 4
+kpt_names:
+  0:
+  - body_center
+  - bridge
+  - neck_joint
+  - nut
+  - head_tip
+  1:
+  - body_center
+  - bridge
+  - neck_joint
+  - nut
+  - head_tip

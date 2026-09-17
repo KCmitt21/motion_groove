@@ -1,0 +1,10 @@
+# DeepLabCutのcreate-project後、生成されたconfig.yamlへ転記する設計値。
+individuals: [guitar, bass]
+multianimalbodyparts: [body_center, bridge, neck_joint, nut, head_tip]
+uniquebodyparts: []
+skeleton:
+  - [body_center, bridge]
+  - [body_center, neck_joint]
+  - [neck_joint, nut]
+  - [nut, head_tip]
+

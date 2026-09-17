@@ -1,0 +1,3 @@
+# Recommended in its own Python 3.11 environment.
+deeplabcut>=3.0
+anipose>=0.9

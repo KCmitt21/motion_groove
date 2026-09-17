@@ -1,0 +1,96 @@
+video:
+  fps: "30000/1001"
+  start_timecode: "14:03:53:01"
+  max_seconds: 60.0
+  cameras:
+    cam_guitar_close:
+      path: movie/exp_2026_08_29/GX010235.mov
+      visible_performers: [guitarist]
+      initial_left_to_right: [guitarist]
+    cam_bass_close:
+      path: movie/exp_2026_08_29/GX010262.mov
+      visible_performers: [bassist]
+      initial_left_to_right: [bassist]
+    cam_wide:
+      path: movie/exp_2026_08_29/GX010340.mov
+      visible_performers: [bassist, guitarist]
+      initial_left_to_right: [bassist, guitarist]
+
+pose:
+  backend: mmpose
+  # MMPose 1.3.2 official alias: RTMPose-m WholeBody + default RTMDet-m detector.
+  model: wholebody
+  detector: null
+  device: cpu
+  keypoint_score_threshold: 0.30
+
+face:
+  enabled: true
+  model_path: models/face_landmarker.task
+  max_faces: 2
+  min_score: 0.50
+  isolated_process: true
+  timeout_sec: 30
+
+gaze:
+  down_pitch_deg: 18.0
+  forward_yaw_deg: 15.0
+  forward_pitch_deg: 15.0
+  target_tolerance_deg: 25.0
+
+instruments:
+  # YOLO PoseまたはDLCで作った5点CSVをカメラ別に指定する。
+  # python -m instrument_detector.manage infer-config の出力をそのまま利用できる。
+  # keypoint_csv:
+  #   cam_guitar_close: out/dlc/cam_guitar_close.csv
+  #   cam_bass_close: out/dlc/cam_bass_close.csv
+  #   cam_wide: out/dlc/cam_wide.csv
+  keypoint_csv: {}
+  score_threshold: 0.50
+
+audio:
+  # wav_pathを指定すると全動画内蔵音声の代わりにそのWAVを使用する。
+  wav_path: null
+  wav_offset_sec: 0.0
+  source_camera: cam_wide
+  sample_rate: 48000
+  hop_length: 512
+
+analysis:
+  max_lag_sec: 2.0
+  event_window_sec: 1.0
+  instrument_motion:
+    # 画像上の上向き速度と3〜9 Hzのネック角周期揺れ。実データで要調整。
+    rise_velocity_threshold_norm_s: 0.02
+    rise_smoothing_sec: 0.20
+    rise_min_duration_sec: 0.20
+    ending_window_sec: 5.0
+    oscillation_window_sec: 1.0
+    oscillation_min_hz: 3.0
+    oscillation_max_hz: 9.0
+    oscillation_min_power_ratio: 0.50
+    oscillation_min_rms_deg: 0.50
+    oscillation_min_duration_sec: 0.30
+
+qc:
+  max_sync_lag_sec: 1.0
+  reprojection_warn_px: 5.0
+
+output:
+  directory: out/mvp
+  parquet: true
+  overlay_video: true
+  overlay_scale: 0.5
+
+calibration:
+  images_directory: calibration/images
+  image_glob: "*.png"
+  output_file: calibration/calibration.json
+  triangulate_if_available: true
+  charuco:
+    dictionary: DICT_5X5_100
+    squares_x: 7
+    squares_y: 5
+    square_length_m: 0.040
+    marker_length_m: 0.030
+    reference_camera: cam_wide
